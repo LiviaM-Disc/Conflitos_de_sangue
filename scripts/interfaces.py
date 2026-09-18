@@ -141,9 +141,12 @@ def draw_hud(surface: pygame.Surface, fonts: FontBook, score: int, objective: st
 def draw_message(surface: pygame.Surface, fonts: FontBook, message: str) -> None:
     if not message:
         return
-    rect = pygame.Rect(230, surface.get_height() - 100, surface.get_width() - 460, 66)
+    width = surface.get_width() - 200
+    lines = wrap_text(message, fonts.body, width - 32)
+    height = len(lines) * (fonts.body.get_height() + 5) + 24
+    rect = pygame.Rect(100, surface.get_height() - 72 - height, width, height)
     draw_panel(surface, rect, (31, 32, 38))
-    draw_text(surface, message, fonts.body, TEXT, rect.inflate(-28, -20))
+    draw_text(surface, message, fonts.body, TEXT, rect.inflate(-32, -24))
 
 
 def draw_clue_panel(surface: pygame.Surface, fonts: FontBook, evidences: list, score: int) -> None:

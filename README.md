@@ -21,8 +21,7 @@ python -m venv .venv
 
 ## Imagens dos personagens
 
-Coloque as artes em `assets/personagens/`. O jogo procura automaticamente por arquivos
-`.png`, `.jpg`, `.jpeg`, `.webp` ou `.bmp` com estes nomes:
+As 36 artes recebidas foram organizadas em subpastas de `assets/personagens/`:
 
 - `cassie`
 - `dean`
@@ -32,8 +31,29 @@ Coloque as artes em `assets/personagens/`. O jogo procura automaticamente por ar
 - `celine`
 - `daniel`
 - `lorelai`
+- `masters`
 
-Exemplo: `assets/personagens/cassie.png`.
+Cada pasta contem `idle.png` (parado), `walk.png` (andando), `action.png`
+(investigando) e `sprite_sheet.png` (folha de referencia preservada).
+
+Exemplo: `assets/personagens/cassie/idle.png`.
+
+Os dialogos do prologo usam a pose parada. As telas de investigacao usam a pose
+de acao. Na exploracao, Cassie alterna entre parada, andando e investigando.
+Estas sao poses estaticas, nao uma animacao quadro a quadro. As folhas completas
+nao sao recortadas automaticamente. Masters esta cadastrado, mas ainda nao tem
+uma aparicao visual nas cenas atuais; Celine tambem permanece sem retrato em cena.
+
+As imagens originais mantem fundo e legendas e continuam preservadas.
+O jogo prioriza os atlas transparentes em `assets/personagens/preparados/`.
+Essas versoes foram editadas com IA a partir dos originais e podem apresentar
+pequenas diferencas. Cassie possui tres poses; os demais usam o retrato preparado
+tambem nas telas de investigacao. A caminhada tem oscilacao leve e orientacao
+horizontal, mas ainda nao possui um ciclo de quadros completo.
+O novo escritorio ilustrado fica em `assets/cenarios/escritorio.png`, com areas
+de interacao alinhadas aos objetos e bloqueio da mesa central e mesa lateral.
+O carregador tambem aceita JPG, JPEG, WEBP e BMP e preserva o suporte ao formato
+anterior, como `assets/personagens/cassie.png`. Uma pose ausente usa `idle`.
 
 Se alguma imagem nao existir, o jogo usa um placeholder gerado em tempo de execucao.
 

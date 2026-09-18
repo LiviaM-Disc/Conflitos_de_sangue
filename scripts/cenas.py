@@ -33,7 +33,7 @@ from scripts.interfaces import (
     draw_text,
 )
 from scripts.investigacao import InvestigationState
-from scripts.personagens import CHARACTERS, Player, load_portraits
+from scripts.personagens import CHARACTERS, Player, load_portrait, load_portraits
 from scripts.pistas import EVIDENCES
 
 
@@ -44,8 +44,17 @@ class Game:
         self.assets_dir = root / "assets"
         self.fonts = FontBook()
         self.investigation = InvestigationState()
-        self.player = Player((150, 530))
+        self.player_poses = {
+            pose: load_portrait(self.assets_dir / "personagens", "cassie", (92, 142), pose)
+            for pose in ("idle", "walk", "action")
+        }
+        self.player = Player((485, 535), self.player_poses)
         self.portraits = load_portraits(self.assets_dir)
+        self.action_portraits = load_portraits(self.assets_dir, "action")
+        self.room_image = pygame.transform.smoothscale(
+            pygame.image.load(str(self.assets_dir / "cenarios" / "escritorio.png")).convert(),
+            self.screen.get_size(),
+        )
 
         self.running = True
         self.state = "menu"
@@ -61,36 +70,42 @@ class Game:
         self.interrogation_feedback = ""
         self.phase5_hint_used = False
 
-        self.room_bounds = pygame.Rect(90, 110, 780, 520)
+        self.room_bounds = pygame.Rect(48, 337, 1034, 313)
+        self.obstacles = (pygame.Rect(426, 300, 280, 82), pygame.Rect(1030, 340, 90, 127))
         self.interactables = [
             {
                 "id": "celine_bracelet",
                 "label": "Pulseira",
-                "rect": pygame.Rect(250, 480, 46, 34),
+                "rect": pygame.Rect(82, 516, 42, 26),
+                "marker": (102, 523),
                 "color": (155, 116, 76),
             },
             {
                 "id": "broken_phone",
                 "label": "Celular",
-                "rect": pygame.Rect(545, 416, 46, 34),
+                "rect": pygame.Rect(992, 370, 35, 50),
+                "marker": (1078, 347),
                 "color": (73, 81, 88),
             },
             {
                 "id": "coded_invitation",
                 "label": "Convite",
-                "rect": pygame.Rect(710, 274, 58, 38),
+                "rect": pygame.Rect(522, 377, 65, 22),
+                "marker": (568, 224),
                 "color": (169, 161, 134),
             },
             {
                 "id": "dusty_book",
                 "label": "Livro",
-                "rect": pygame.Rect(192, 206, 56, 40),
+                "rect": pygame.Rect(142, 334, 64, 28),
+                "marker": (169, 246),
                 "color": (96, 73, 62),
             },
             {
                 "id": "window_mark",
                 "label": "Janela",
-                "rect": pygame.Rect(810, 168, 42, 96),
+                "rect": pygame.Rect(846, 337, 64, 28),
+                "marker": (883, 212),
                 "color": (72, 102, 112),
             },
         ]
@@ -170,6 +185,7 @@ class Game:
             if event.key == pygame.K_e:
                 self.try_interact()
             elif event.key == pygame.K_q:
+                self.player.investigate()
                 if self.investigation.use_ability("cassie_observation"):
                     self.set_message("Cassie reconstruiu a cena: nada aqui parece aleatorio.")
                 else:
@@ -267,7 +283,7 @@ class Game:
                 self.message = ""
 
         if self.state == "phase1" and not self.paused and not self.show_clues:
-            self.player.update(dt, pygame.key.get_pressed(), self.room_bounds)
+            self.player.update(dt, pygame.key.get_pressed(), self.room_bounds, self.obstacles)
 
     def draw(self) -> None:
         if self.state == "menu":
@@ -293,7 +309,10 @@ class Game:
             self.draw_pause()
 
     def draw_menu(self) -> None:
-        draw_gradient(self.screen, (21, 22, 28), (56, 32, 38))
+        self.screen.blit(self.room_image, (0, 0))
+        shade = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
+        shade.fill((10, 17, 17, 155))
+        self.screen.blit(shade, (0, 0))
         width, height = self.screen.get_size()
 
         title = self.fonts.title.render("Conflitos de Sangue", True, TEXT)
@@ -301,8 +320,7 @@ class Game:
         subtitle = self.fonts.subtitle.render("Aventura narrativa 2D de misterio e investigacao", True, MUTED)
         self.screen.blit(subtitle, subtitle.get_rect(center=(width // 2, 200)))
 
-        case_rect = pygame.Rect(130, 272, width - 260, 190)
-        draw_panel(self.screen, case_rect, (34, 35, 42))
+        case_rect = pygame.Rect(230, 272, width - 460, 190)
         draw_text(
             self.screen,
             (
@@ -312,13 +330,15 @@ class Game:
             self.fonts.body,
             TEXT,
             pygame.Rect(case_rect.x + 34, case_rect.y + 32, case_rect.width - 68, 70),
+            align="center",
         )
         draw_text(
             self.screen,
-            "Vertical slice: prologo, cinco fases, painel de pistas, puzzle, perfilacao e epilogo.",
+            "Um desaparecimento. Uma mensagem. Uma armadilha.",
             self.fonts.small,
             MUTED,
             pygame.Rect(case_rect.x + 34, case_rect.y + 118, case_rect.width - 68, 32),
+            align="center",
         )
 
         for button in self.menu_buttons():
@@ -345,42 +365,45 @@ class Game:
                 button.draw(self.screen, self.fonts, pygame.mouse.get_pos())
 
     def draw_phase1(self) -> None:
-        draw_gradient(self.screen, (22, 24, 28), (38, 42, 46))
-        draw_hud(
-            self.screen,
-            self.fonts,
-            self.investigation.score,
-            "Fase 1: encontre as tres pistas essenciais. E interage, Q observa, TAB abre pistas.",
-        )
         self.draw_room()
         self.player.draw(self.screen)
-
+        bar = pygame.Surface((1120, 72), pygame.SRCALPHA)
+        bar.fill((18, 24, 25, 235))
+        self.screen.blit(bar, (0, 0))
+        self.screen.blit(self.fonts.small.render("CASO 01 / O DESAPARECIMENTO", True, ACCENT_2), (28, 12))
+        self.screen.blit(self.fonts.h2.render("O escritorio de Celine", True, TEXT), (28, 33))
+        count = sum(self.investigation.has(key) for key in ("celine_bracelet", "broken_phone", "coded_invitation"))
+        status = self.fonts.body.render(f"Evidencias {count}/3     Pontos {self.investigation.score}", True, TEXT)
+        self.screen.blit(status, status.get_rect(midright=(1090, 36)))
+        self.screen.blit(bar, (0, 664))
         nearest = self.nearest_interactable()
         if nearest:
-            prompt = self.fonts.body.render(f"E investigar: {nearest['label']}", True, TEXT)
-            self.screen.blit(prompt, (96, 642))
-
+            prompt = self.fonts.body.render(f"Investigar: {nearest['label']}", True, TEXT)
+            self.screen.blit(prompt, (28, 682))
+        else:
+            self.screen.blit(self.fonts.body.render("Encontre os rastros deixados por Celine.", True, MUTED), (28, 682))
         if self.investigation.has_all_phase1_required():
-            ready = self.fonts.body.render("ENTER para seguir para o interrogatorio", True, GOOD)
-            self.screen.blit(ready, (700, 642))
-
+            ready = self.fonts.body.render("ENTER - Seguir para o interrogatorio", True, GOOD)
+            self.screen.blit(ready, ready.get_rect(midright=(1090, 694)))
         draw_message(self.screen, self.fonts, self.message)
 
     def draw_room(self) -> None:
-        pygame.draw.rect(self.screen, (45, 42, 44), self.room_bounds, border_radius=8)
-        pygame.draw.rect(self.screen, (89, 82, 78), self.room_bounds, width=3, border_radius=8)
-
-        pygame.draw.rect(self.screen, (75, 58, 54), (135, 160, 170, 104), border_radius=5)
-        pygame.draw.rect(self.screen, (54, 57, 62), (500, 356, 180, 104), border_radius=5)
-        pygame.draw.rect(self.screen, (52, 70, 76), (790, 130, 84, 154), border_radius=4)
-        pygame.draw.rect(self.screen, (32, 34, 40), (145, 486, 232, 82), border_radius=4)
-        pygame.draw.rect(self.screen, (83, 74, 68), (678, 240, 160, 92), border_radius=4)
-
+        self.screen.blit(self.room_image, (0, 0))
+        nearest = self.nearest_interactable()
         for item in self.interactables:
-            rect = item["rect"]
-            pygame.draw.rect(self.screen, item["color"], rect, border_radius=5)
-            if self.player.rect.colliderect(rect.inflate(36, 36)):
-                pygame.draw.rect(self.screen, ACCENT, rect.inflate(8, 8), width=2, border_radius=7)
+            if self.investigation.has(item["id"]) and item is not nearest:
+                continue
+            x, y = item["marker"]
+            color = TEXT if item is nearest else (221, 197, 127)
+            pygame.draw.circle(self.screen, (24, 29, 28), (x, y - 20), 10)
+            pygame.draw.circle(self.screen, color, (x, y - 20), 9, 1)
+            pygame.draw.circle(self.screen, color, (x, y - 20), 2)
+            if item is nearest:
+                label = self.fonts.small.render(item["label"], True, TEXT)
+                rect = label.get_rect(midbottom=(x, y - 36)).inflate(20, 12)
+                rect.clamp_ip(self.screen.get_rect())
+                pygame.draw.rect(self.screen, (24, 29, 28), rect, border_radius=4)
+                self.screen.blit(label, label.get_rect(center=rect.center))
 
     def draw_interrogation(self) -> None:
         draw_gradient(self.screen, (21, 22, 28), (39, 33, 38))
@@ -532,7 +555,8 @@ class Game:
             button.draw(self.screen, self.fonts, pygame.mouse.get_pos())
 
     def draw_portrait(self, key: str, pos: tuple[int, int]) -> None:
-        self.screen.blit(self.portraits[key], pos)
+        portraits = self.action_portraits if self.state in {"interrogation", "puzzle", "profile", "finale"} else self.portraits
+        self.screen.blit(portraits[key], pos)
         info = CHARACTERS[key]
         name = self.fonts.h2.render(info["name"], True, TEXT)
         ability = self.fonts.small.render(info["ability"], True, MUTED)
@@ -546,6 +570,7 @@ class Game:
             return
 
         is_new, evidence = self.investigation.add_evidence(item["id"])
+        self.player.investigate()
         if is_new:
             self.set_message(f"Pista registrada: {evidence.name}. {evidence.description}")
         else:
@@ -563,7 +588,7 @@ class Game:
 
     def start_game(self) -> None:
         self.investigation = InvestigationState()
-        self.player = Player((150, 530))
+        self.player = Player((485, 535), self.player_poses)
         self.state = "prologue"
         self.dialogue_index = 0
         self.puzzle_step = 0
