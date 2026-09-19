@@ -15,7 +15,8 @@ def main() -> None:
     screen = pygame.display.set_mode(WINDOW_SIZE)
     clock = pygame.time.Clock()
 
-    game = Game(screen, Path(__file__).parent)
+    root = Path(__file__).parent
+    game = Game(screen, root, root / "saves" / "progresso.json")
 
     while game.running:
         dt = clock.tick(FPS) / 1000
@@ -23,9 +24,14 @@ def main() -> None:
 
         for event in events:
             if event.type == pygame.QUIT:
-                game.running = False
+                game.request_quit()
+
+        if not game.running:
+            break
 
         game.handle_events(events)
+        if not game.running:
+            break
         game.update(dt)
         game.draw()
         pygame.display.flip()

@@ -93,7 +93,26 @@ na mesma etapa nao geram novos pontos. Uma nova partida reinicia todas as etapas
 As falas do depoente, o horario 20h42, a chave 29 e as pistas do salao sao
 conteudo original de adaptacao para exercitar as mecanicas do GDD, nao citacoes
 nem acontecimentos confirmados do livro. Ainda faltam roteiro narrativo completo,
-audio, salvamento e animacoes de caminhada quadro a quadro.
+audio e animacoes de caminhada quadro a quadro.
+
+## Salvamento
+
+O jogo possui um slot local em `saves/progresso.json`. O progresso e gravado
+automaticamente apos acoes, a cada cinco segundos quando ha alteracoes e ao
+fechar normalmente a janela. O menu mostra **Continuar** quando existe uma
+partida valida. Enter no menu retoma essa partida.
+
+O salvamento inclui fase e subetapa, posicao, pistas utilizadas, pontuacao,
+habilidades ja consultadas e selecoes parciais da reconstrucao. Pausa e dossie
+fecham ao retomar; mensagens temporarias reaparecem por alguns segundos.
+
+Na pausa, **Salvar partida** grava manualmente e **Salvar e voltar ao menu**
+retorna ao menu. **Nova investigacao** pede confirmacao antes de substituir
+uma partida valida. Um arquivo ilegivel nao e alterado ao abrir o jogo; iniciar
+uma partida nova o substitui. Falhas ao gravar geram aviso, preservam o ultimo
+arquivo valido e impedem sair normalmente ate salvar ou escolher **Sair sem salvar**.
+
+Os testes usam pastas temporarias e nao alteram o progresso real do jogador.
 
 ## Verificacao
 
@@ -110,3 +129,4 @@ audio, salvamento e animacoes de caminhada quadro a quadro.
 - `scripts/investigacao.py`: pontuacao, pistas, deducoes e progresso
 - `scripts/dialogos.py`: falas e escolhas narrativas
 - `scripts/pistas.py`: base de evidencias investigaveis
+- `scripts/salvamento.py`: formato, validacao e gravacao do progresso

@@ -36,14 +36,26 @@ from scripts.interfaces import (
 from scripts.investigacao import InvestigationState
 from scripts.personagens import CHARACTERS, Player, load_portrait
 from scripts.pistas import EVIDENCES, FINAL_REQUIRED
+from scripts.salvamento import SaveStore, STAGES, PROGRESS_FIELDS, snapshot
 
 
 class Game:
-    def __init__(self, screen: pygame.Surface, root: Path) -> None:
+    def __init__(self, screen: pygame.Surface, root: Path, save_path: Path | None = None) -> None:
         self.screen = screen
         self.root = root
         self.assets_dir = root / "assets"
         self.fonts = FontBook()
+        self.save_store = SaveStore(save_path) if save_path is not None else None
+        self.saved_game = None
+        self.save_notice = ""
+        self.save_status = ""
+        self.save_elapsed = 0.0
+        self.confirm_new = False
+        if self.save_store:
+            try:
+                self.saved_game = self.save_store.load()
+            except (OSError, ValueError, TypeError, KeyError):
+                self.save_notice = "Nao foi possivel ler o progresso salvo. O arquivo foi preservado."
         self.investigation = InvestigationState()
         self.player_poses = {
             pose: load_portrait(self.assets_dir / "personagens", "cassie", (92, 142), pose)
@@ -130,6 +142,12 @@ class Game:
         ]
 
     def handle_events(self, events: list[pygame.event.Event]) -> None:
+        before = snapshot(self) if self.save_store and self.state != "menu" else None
+        self.dispatch_events(events)
+        if self.running and self.save_store and self.state != "menu" and snapshot(self) != before:
+            self.save_progress()
+
+    def dispatch_events(self, events: list[pygame.event.Event]) -> None:
         for event in events:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE and self.show_clues:
@@ -185,14 +203,38 @@ class Game:
                         self.paused = False
                     elif button.value == "menu":
                         self.reset_to_menu()
+                    elif button.value == "save":
+                        self.save_progress()
+                    elif button.value == "quit_without_save":
+                        self.running = False
+                    return
 
     def handle_menu_event(self, event: pygame.event.Event) -> None:
+        if self.confirm_new:
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                self.confirm_new = False
+            for button in self.new_game_buttons():
+                if button.hit(event):
+                    self.confirm_new = False
+                    if button.value == "new":
+                        self.start_game()
+            return
         if event.type == pygame.KEYDOWN and event.key in {pygame.K_RETURN, pygame.K_SPACE}:
-            self.start_game()
+            if self.saved_game:
+                self.continue_game()
+            else:
+                self.start_game()
+            return
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             for button in self.menu_buttons():
                 if button.hit(event):
-                    self.start_game()
+                    if button.value == "continue":
+                        self.continue_game()
+                    elif self.saved_game:
+                        self.confirm_new = True
+                    else:
+                        self.start_game()
+                    return
 
     def handle_prologue_event(self, event: pygame.event.Event) -> None:
         if self.dialogue_index < len(PROLOGUE_LINES):
@@ -367,6 +409,10 @@ class Game:
                     self.reset_to_menu()
 
     def update(self, dt: float) -> None:
+        self.save_elapsed += dt
+        if self.save_elapsed >= 5 and self.state != "menu":
+            self.save_progress()
+            self.save_elapsed = 0.0
         if self.paused or self.show_clues:
             return
         if self.message_timer > 0:
@@ -403,6 +449,9 @@ class Game:
                 button.draw(self.screen, self.fonts, pygame.mouse.get_pos())
         if self.paused:
             self.draw_pause()
+        if self.save_notice:
+            draw_band(self.screen, pygame.Rect(0, 76, 1120, 40))
+            draw_text(self.screen, self.save_notice, self.fonts.small, TEXT, pygame.Rect(28, 84, 1064, 28))
 
     def draw_menu(self) -> None:
         self.screen.blit(self.room_image, (0, 0))
@@ -439,6 +488,20 @@ class Game:
 
         for button in self.menu_buttons():
             button.draw(self.screen, self.fonts, pygame.mouse.get_pos())
+        if self.saved_game:
+            saved = self.saved_game
+            label = f"{STAGES[saved['progress']['state']]}  /  {saved['investigation']['score']} pontos"
+            draw_text(self.screen, label, self.fonts.small, TEXT, pygame.Rect(180, 644, 760, 30), align="center")
+        if self.confirm_new:
+            overlay = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, 190))
+            self.screen.blit(overlay, (0, 0))
+            draw_panel(self.screen, pygame.Rect(280, 225, 560, 270))
+            draw_text(self.screen, "Nova investigacao?", self.fonts.h1, TEXT, pygame.Rect(310, 255, 500, 44))
+            draw_text(self.screen, "O progresso salvo desta partida sera substituido.", self.fonts.body, MUTED,
+                      pygame.Rect(310, 315, 500, 70))
+            for button in self.new_game_buttons():
+                button.draw(self.screen, self.fonts, pygame.mouse.get_pos())
 
     def draw_prologue(self) -> None:
         self.draw_stage("entrevista", "PROLOGO / DANIEL REDDING", "Antes do desaparecimento")
@@ -659,12 +722,14 @@ class Game:
         overlay = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
         overlay.fill((0, 0, 0, 180))
         self.screen.blit(overlay, (0, 0))
-        rect = pygame.Rect(390, 210, 340, 250)
+        rect = pygame.Rect(390, 180, 340, 380)
         draw_panel(self.screen, rect, PANEL)
         title = self.fonts.h1.render("Pausa", True, TEXT)
         self.screen.blit(title, title.get_rect(center=(rect.centerx, rect.y + 46)))
         for button in self.pause_buttons():
             button.draw(self.screen, self.fonts, pygame.mouse.get_pos())
+        if self.save_status and not self.save_notice:
+            draw_text(self.screen, self.save_status, self.fonts.small, GOOD, pygame.Rect(420, 492, 280, 34), align="center")
 
     def try_interact(self) -> None:
         item = self.nearest_interactable()
@@ -715,13 +780,67 @@ class Game:
         self.set_message("")
 
     def reset_to_menu(self) -> None:
+        if self.save_store and self.state != "menu" and not self.save_progress():
+            return
         self.state = "menu"
         self.paused = False
         self.show_clues = False
         self.set_message("")
 
     def menu_buttons(self) -> list[Button]:
+        if self.saved_game:
+            return [Button(pygame.Rect(435, 490, 250, 56), "Continuar", "continue"),
+                    Button(pygame.Rect(435, 562, 250, 56), "Nova investigacao", "new")]
         return [Button(pygame.Rect(435, 505, 250, 58), "Iniciar investigacao", "start")]
+
+    def new_game_buttons(self) -> list[Button]:
+        return [Button(pygame.Rect(310, 412, 220, 52), "Cancelar", "cancel"),
+                Button(pygame.Rect(558, 412, 250, 52), "Iniciar nova", "new")]
+
+    def save_progress(self) -> bool:
+        if not self.save_store or self.state == "menu":
+            return False
+        data = snapshot(self)
+        if data == self.saved_game and self.save_store.path.exists():
+            self.save_status = "Progresso salvo."
+            self.save_notice = ""
+            return True
+        try:
+            self.save_store.write(data)
+        except (OSError, ValueError, TypeError):
+            self.save_notice = "Nao foi possivel salvar. Sua partida continua aberta; tente novamente antes de fechar."
+            return False
+        self.saved_game = data
+        self.save_notice = ""
+        self.save_status = "Progresso salvo."
+        return True
+
+    def request_quit(self) -> None:
+        if self.save_store and self.state != "menu" and not self.save_progress():
+            self.paused = True
+            self.show_clues = False
+            return
+        self.running = False
+
+    def continue_game(self) -> None:
+        if self.saved_game is None:
+            return
+        saved = self.saved_game
+        for key in PROGRESS_FIELDS:
+            value = saved["progress"][key]
+            setattr(self, key, list(value) if isinstance(value, list) else value)
+        inv = dict(saved["investigation"])
+        inv["evidence"] = dict(inv["evidence"])
+        inv["used_abilities"] = set(inv["used_abilities"])
+        self.investigation = InvestigationState(**inv)
+        self.player = Player(tuple(saved["position"]), self.player_poses)
+        self.player.facing_left = saved["facing_left"]
+        self.paused = False
+        self.show_clues = False
+        self.clue_page = 0
+        self.confirm_new = False
+        self.message_timer = 8.0 if self.message else 0.0
+        self.save_elapsed = 0.0
 
     def prologue_choice_buttons(self) -> list[Button]:
         return [
@@ -803,7 +922,11 @@ class Game:
         return [Button(pygame.Rect(558, 620, 250, 56), "Voltar ao menu", "menu")]
 
     def pause_buttons(self) -> list[Button]:
-        return [
-            Button(pygame.Rect(460, 300, 200, 52), "Continuar", "resume"),
-            Button(pygame.Rect(460, 370, 200, 52), "Menu inicial", "menu"),
+        buttons = [
+            Button(pygame.Rect(430, 270, 260, 52), "Continuar", "resume"),
+            Button(pygame.Rect(430, 340, 260, 52), "Salvar partida", "save", enabled=self.save_store is not None),
+            Button(pygame.Rect(430, 410, 260, 52), "Salvar e voltar ao menu", "menu"),
         ]
+        if self.save_notice:
+            buttons.append(Button(pygame.Rect(430, 480, 260, 52), "Sair sem salvar", "quit_without_save"))
+        return buttons
