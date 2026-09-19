@@ -14,6 +14,8 @@ from scripts.dialogos import (
     PROFILE_EVENTS,
     PROLOGUE_CHOICES,
     PROLOGUE_LINES,
+    PROLOGUE_OUTRO,
+    EPILOGUE_LINES,
 )
 from scripts.interfaces import (
     ACCENT,
@@ -82,6 +84,9 @@ class Game:
         self.message_timer = 0.0
 
         self.dialogue_index = 0
+        self.prologue_outro_index = -1
+        self.epilogue_index = 0
+        self.puzzle_input = ""
         self.profile_selection: list[int] = []
         self.puzzle_step = 0
         self.final_feedback = ""
@@ -95,6 +100,9 @@ class Game:
         self.final_mode = "explore"
         self.final_round = 0
         self.final_round_feedback = ""
+        self.proof_choice = -1
+        self.proof_selection = []
+        self.proof_page = 0
         self.final_interactables = [
             {"id": "lorelai_note", "label": "Retrato", "rect": pygame.Rect(515, 337, 80, 30), "marker": (557, 150)},
             {"id": "locked_exit", "label": "Porta", "rect": pygame.Rect(995, 352, 60, 30), "marker": (1025, 271)},
@@ -237,6 +245,12 @@ class Game:
                     return
 
     def handle_prologue_event(self, event: pygame.event.Event) -> None:
+        if self.prologue_outro_index >= 0:
+            if (event.type == pygame.KEYDOWN and event.key in {pygame.K_SPACE, pygame.K_RETURN}) or self.dialogue_continue_button().hit(event):
+                self.prologue_outro_index += 1
+                if self.prologue_outro_index == len(PROLOGUE_OUTRO):
+                    self.state = "phase1"
+            return
         if self.dialogue_index < len(PROLOGUE_LINES):
             if (event.type == pygame.KEYDOWN and event.key in {pygame.K_SPACE, pygame.K_RETURN}) or self.dialogue_continue_button().hit(event):
                 self.dialogue_index += 1
@@ -253,7 +267,7 @@ class Game:
                         self.investigation.mistakes += 1
                         self.investigation.score -= 10
                     self.set_message(feedback)
-                    self.state = "phase1"
+                    self.prologue_outro_index = 0
 
     def handle_phase1_event(self, event: pygame.event.Event) -> None:
         if event.type == pygame.KEYDOWN:
@@ -280,6 +294,9 @@ class Game:
                 self.set_message("")
             return
         topic = INTERROGATION_ROUNDS[self.interrogation_round]
+        if self.proof_choice >= 0:
+            self.handle_proof_event(event, topic)
+            return
         for button in self.interrogation_ability_buttons():
             if button.hit(event):
                 self.interrogation_insight = topic[button.value]
@@ -290,14 +307,7 @@ class Game:
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             for button in self.interrogation_buttons():
                 if button.hit(event):
-                    text, correct = button.value
-                    self.investigation.register_lie(correct, topic["evidence"])
-                    if correct:
-                        for evidence_id in topic["uses"]:
-                            self.investigation.mark_used(evidence_id)
-                    prefix = "Boa leitura. " if correct else "A hipotese nao se sustenta. A equipe revisa o depoimento: "
-                    self.interrogation_feedback = prefix + topic["feedback"]
-                    self.set_message("")
+                    self.proof_choice = topic["choices"].index(button.value)
                     return
 
     def handle_puzzle_event(self, event: pygame.event.Event) -> None:
@@ -305,22 +315,28 @@ class Game:
             self.investigation.use_ability(f"sloane_{self.puzzle_step}")
             self.set_message(PUZZLE_ROUNDS[self.puzzle_step]["hint"], 8)
             return
-        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            for button in self.puzzle_buttons():
-                if button.hit(event):
-                    correct = button.value == PUZZLE_ROUNDS[self.puzzle_step]["answer"]
-                    self.investigation.register_puzzle(correct)
-                    if correct:
-                        self.puzzle_step += 1
-                        self.set_message("A regra confere. Ainda ha outra camada no convite.")
-                        if self.puzzle_step == len(PUZZLE_ROUNDS):
-                            self.investigation.add_evidence("fibonacci_key")
-                            self.investigation.mark_used("coded_invitation")
-                            self.state = "profile"
-                            self.set_message("A chave 29 abre o envelope interno. A mensagem pede que Cassie venha sozinha.", 8)
-                    else:
-                        self.set_message("A resposta nao encaixa. Revise a sequencia ou consulte Sloane.")
-                    return
+        if event.type == pygame.KEYDOWN:
+            character = getattr(event, "unicode", "")
+            if event.key == pygame.K_BACKSPACE:
+                self.puzzle_input = self.puzzle_input[:-1]
+            elif character in "0123456789" and len(character) == 1 and len(self.puzzle_input) < 6:
+                self.puzzle_input += character
+        submit = (event.type == pygame.KEYDOWN and event.key in {pygame.K_RETURN, pygame.K_KP_ENTER}) or self.puzzle_buttons()[0].hit(event)
+        if not submit or not self.puzzle_input:
+            return
+        correct = int(self.puzzle_input) == PUZZLE_ROUNDS[self.puzzle_step]["answer"]
+        self.investigation.register_puzzle(correct)
+        self.puzzle_input = ""
+        if correct:
+            self.puzzle_step += 1
+            self.set_message("A regra confere. Ainda ha outra camada no convite.")
+            if self.puzzle_step == len(PUZZLE_ROUNDS):
+                self.investigation.add_evidence("fibonacci_key")
+                self.investigation.mark_used("coded_invitation")
+                self.state = "profile"
+                self.set_message("A chave 29 abre o envelope interno. A mensagem pede que Cassie venha sozinha.", 8)
+        else:
+            self.set_message("A resposta nao encaixa. Revise a sequencia ou consulte Sloane.")
 
     def handle_profile_event(self, event: pygame.event.Event) -> None:
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
@@ -385,22 +401,100 @@ class Game:
             else:
                 self.set_message("Agora Cassie precisa concluir sem novas ajudas.")
 
+        if self.proof_choice >= 0:
+            self.handle_proof_event(event, FINAL_ROUNDS[self.final_round])
+            return
+
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             for button in self.final_buttons():
                 if button.hit(event):
-                    _, correct = button.value
-                    self.investigation.register_connection(correct)
-                    if correct:
-                        for evidence_id in FINAL_ROUNDS[self.final_round]["uses"]:
-                            self.investigation.mark_used(evidence_id)
-                        if self.final_round == len(FINAL_ROUNDS) - 1:
-                            self.investigation.add_evidence("final_deduction")
-                    prefix = "As evidencias sustentam a conclusao. " if correct else "Cassie revê a hipotese: "
-                    self.final_round_feedback = prefix + FINAL_ROUNDS[self.final_round]["feedback"]
-                    self.set_message("")
+                    self.proof_choice = FINAL_ROUNDS[self.final_round]["choices"].index(button.value)
                     return
 
+    def handle_proof_event(self, event, topic) -> None:
+        for button in self.proof_buttons(topic):
+            if not button.hit(event):
+                continue
+            value = button.value
+            if value == "back":
+                self.proof_choice = -1
+                self.proof_selection.clear()
+                self.proof_page = 0
+            elif value in ("previous", "next"):
+                self.proof_page += -1 if value == "previous" else 1
+            elif value == "submit":
+                hypothesis = topic["choices"][self.proof_choice][1]
+                supported = set(self.proof_selection) == set(topic["uses"])
+                correct = hypothesis and supported
+                if self.state == "interrogation":
+                    self.investigation.register_lie(correct, topic["evidence"])
+                else:
+                    self.investigation.register_connection(correct)
+                    if correct and self.final_round == len(FINAL_ROUNDS) - 1:
+                        self.investigation.add_evidence("final_deduction")
+                if correct:
+                    for evidence_id in self.proof_selection:
+                        self.investigation.mark_used(evidence_id)
+                prefix = ("Argumento sustentado pelas provas. " if correct else
+                          "Hipotese correta, mas as provas apresentadas nao a sustentam. " if hypothesis else
+                          "A hipotese nao resiste ao confronto com os registros. ")
+                if self.state == "finale" and not correct:
+                    self.proof_choice = -1
+                    self.proof_selection.clear()
+                    self.proof_page = 0
+                    self.set_message("O argumento tem uma lacuna. Reavalie a hipotese e a relevancia de cada prova antes de concluir.", 10)
+                    return
+                feedback = prefix + topic["feedback"]
+                if self.state == "interrogation":
+                    self.interrogation_feedback = feedback
+                else:
+                    self.final_round_feedback = feedback
+                self.proof_choice = -1
+                self.proof_selection.clear()
+                self.proof_page = 0
+                self.set_message("")
+            elif value in self.proof_selection:
+                self.proof_selection.remove(value)
+            else:
+                self.proof_selection.append(value)
+            return
+
+    def proof_buttons(self, topic) -> list[Button]:
+        evidence = list(self.investigation.evidence)
+        buttons = []
+        for index, key in enumerate(evidence[self.proof_page * 6:self.proof_page * 6 + 6]):
+            selected = key in self.proof_selection
+            buttons.append(Button(pygame.Rect(70 + index % 2 * 500, 248 + index // 2 * 60, 480, 50),
+                                  EVIDENCES[key].name, key, selected=selected,
+                                  enabled=selected or len(self.proof_selection) < 3))
+        buttons.extend([
+            Button(pygame.Rect(70, 628, 170, 48), "Rever hipotese", "back"),
+            Button(pygame.Rect(460, 628, 52, 48), "<", "previous", enabled=self.proof_page > 0),
+            Button(pygame.Rect(524, 628, 52, 48), ">", "next", enabled=(self.proof_page + 1) * 6 < len(evidence)),
+            Button(pygame.Rect(800, 628, 250, 48), "Apresentar provas", "submit",
+                   enabled=bool(self.proof_selection)),
+        ])
+        return buttons
+
+    def draw_proofs(self, topic) -> None:
+        draw_band(self.screen, pygame.Rect(0, 90, 1120, 630))
+        draw_text(self.screen, topic["choices"][self.proof_choice][0], self.fonts.h2, TEXT,
+                  pygame.Rect(70, 114, 980, 74))
+        count = f"PROVAS DO ARGUMENTO: {len(self.proof_selection)} / 3 ESPACOS"
+        draw_text(self.screen, count, self.fonts.small, ACCENT_2, pygame.Rect(70, 207, 750, 30))
+        draw_text(self.screen, f"Pagina {self.proof_page + 1}", self.fonts.small, MUTED, pygame.Rect(900, 207, 150, 30))
+        for index, key in enumerate(self.proof_selection):
+            detail = f"{EVIDENCES[key].name}: {EVIDENCES[key].description}"
+            draw_text(self.screen, detail, self.fonts.small, TEXT,
+                      pygame.Rect(70, 440 + index * 58, 980, 54))
+        for button in self.proof_buttons(topic):
+            button.draw(self.screen, self.fonts, pygame.mouse.get_pos())
+
     def handle_epilogue_event(self, event: pygame.event.Event) -> None:
+        if self.epilogue_index < len(EPILOGUE_LINES):
+            if (event.type == pygame.KEYDOWN and event.key in {pygame.K_RETURN, pygame.K_SPACE}) or self.dialogue_continue_button().hit(event):
+                self.epilogue_index += 1
+            return
         if event.type == pygame.KEYDOWN and event.key in {pygame.K_RETURN, pygame.K_SPACE}:
             self.reset_to_menu()
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
@@ -504,7 +598,11 @@ class Game:
                 button.draw(self.screen, self.fonts, pygame.mouse.get_pos())
 
     def draw_prologue(self) -> None:
-        self.draw_stage("entrevista", "PROLOGO / DANIEL REDDING", "Antes do desaparecimento")
+        if self.prologue_outro_index >= 0:
+            speaker, text = PROLOGUE_OUTRO[self.prologue_outro_index]
+            self.draw_story_scene("arquivo", "PROLOGO / O CHAMADO", "O desaparecimento de Celine", speaker, text)
+            return
+        self.draw_stage("entrevista", "PROLOGO / DANIEL REDDING", "Uma conversa sob suspeita")
         self.draw_stage_character("daniel", 255, 414)
         self.draw_stage_character("cassie", 865, 414)
 
@@ -576,6 +674,9 @@ class Game:
     def draw_interrogation(self) -> None:
         topic = INTERROGATION_ROUNDS[self.interrogation_round]
         self.draw_stage("entrevista", f"FASE 02 / DEPOIMENTO {self.interrogation_round + 1} DE 3", topic["title"])
+        if self.proof_choice >= 0:
+            self.draw_proofs(topic)
+            return
         self.draw_stage_character("lia", 150, 414)
         self.draw_stage_character("michael", 970, 414)
         rect = pygame.Rect(300, 120, 520, 296)
@@ -616,6 +717,8 @@ class Game:
         draw_band(self.screen, pygame.Rect(0, 480, 1120, 240))
         self.screen.blit(self.fonts.h2.render("Sloane", True, ACCENT_2), (40, 506))
         self.puzzle_hint_button().draw(self.screen, self.fonts, pygame.mouse.get_pos())
+        pygame.draw.rect(self.screen, (36, 54, 52), pygame.Rect(610, 528, 210, 62), border_radius=4)
+        draw_text(self.screen, self.puzzle_input or "_", self.fonts.h1, TEXT, pygame.Rect(630, 540, 170, 44))
         for button in self.puzzle_buttons():
             button.draw(self.screen, self.fonts, pygame.mouse.get_pos())
         self.draw_status()
@@ -648,6 +751,9 @@ class Game:
             return
         conclusion = FINAL_ROUNDS[self.final_round]
         self.draw_stage("masters", "FASE 05 / CASSIE E OS MASTERS", "O outro lado da armadilha")
+        if self.proof_choice >= 0:
+            self.draw_proofs(conclusion)
+            return
         self.draw_stage_character("cassie", 150, 414)
         self.draw_stage_character("lorelai", 970, 414, "Lorelai / lembranca")
         rect = pygame.Rect(300, 146, 520, 242)
@@ -671,6 +777,14 @@ class Game:
             button.draw(self.screen, self.fonts, pygame.mouse.get_pos())
 
     def draw_epilogue(self) -> None:
+        if self.epilogue_index < len(EPILOGUE_LINES):
+            speaker, text = EPILOGUE_LINES[self.epilogue_index]
+            if self.epilogue_index == len(EPILOGUE_LINES) - 1:
+                text += (" Ha lacunas que precisamos reconhecer antes de seguir." if self.investigation.mistakes
+                         else "Os registros sustentam cada passo desta conclusao.")
+            self.draw_story_scene("masters" if self.epilogue_index < 2 else "arquivo",
+                                  "EPILOGO / O QUE FICA", "Depois da armadilha", speaker, text)
+            return
         self.draw_stage("arquivo", "EPILOGO / BALANCO DO CASO", "Relatorio da investigacao")
         self.draw_stage_character("cassie", 150, 475)
         rect = pygame.Rect(310, 132, 748, 458)
@@ -701,6 +815,13 @@ class Game:
     def draw_stage(self, background: str, chapter: str, title: str) -> None:
         self.screen.blit(self.backgrounds[background], (0, 0))
         draw_scene_header(self.screen, self.fonts, chapter, title, self.investigation.score)
+
+    def draw_story_scene(self, background, chapter, title, speaker, text) -> None:
+        self.draw_stage(background, chapter, title)
+        key = {"Cassie": "cassie", "Dean": "dean", "Lia": "lia", "Sloane": "sloane"}[speaker]
+        self.draw_stage_character(key, 560, 414)
+        draw_dialogue_box(self.screen, self.fonts, speaker, text)
+        self.dialogue_continue_button().draw(self.screen, self.fonts, pygame.mouse.get_pos())
 
     def draw_stage_character(self, key: str, center_x: int, feet_y: int, caption: str | None = None) -> None:
         image = self.stage_portraits[key]
@@ -758,6 +879,12 @@ class Game:
         self.message_timer = seconds
 
     def start_game(self) -> None:
+        self.prologue_outro_index = -1
+        self.epilogue_index = 0
+        self.puzzle_input = ""
+        self.proof_choice = -1
+        self.proof_selection = []
+        self.proof_page = 0
         self.investigation = InvestigationState()
         self.player = Player((485, 535), self.player_poses)
         self.state = "prologue"
@@ -883,12 +1010,7 @@ class Game:
         return buttons
 
     def puzzle_buttons(self) -> list[Button]:
-        values = PUZZLE_ROUNDS[self.puzzle_step]["choices"]
-        buttons = []
-        start_x = 610
-        for index, value in enumerate(values):
-            buttons.append(Button(pygame.Rect(start_x + index * 150, 528, 120, 62), str(value), value))
-        return buttons
+        return [Button(pygame.Rect(842, 528, 218, 62), "Validar codigo", "submit", enabled=bool(self.puzzle_input))]
 
     def profile_buttons(self) -> list[Button]:
         buttons = []

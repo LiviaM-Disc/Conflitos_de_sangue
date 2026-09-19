@@ -18,6 +18,8 @@ python -m venv .venv
 - TAB: abrir ou fechar painel de pistas
 - ESC: pausar
 - Mouse: escolher respostas, botoes e deducoes
+- Numeros e Backspace: preencher e corrigir codigos; Enter: confirmar
+- Enter ou Espaco: avancar falas do prologo e do epilogo
 - Roda do mouse ou setas do dossie: navegar pelas paginas de pistas
 
 ## Imagens dos personagens
@@ -74,25 +76,40 @@ o tempo das mensagens.
 
 ## Conteudo jogavel
 
+- Prologo: conversa de oito falas com Redding, escolha investigativa e cinco
+  falas de preparacao com a equipe antes de entrar no escritorio.
 - Fase 1: exploracao do escritorio e cinco objetos investigaveis.
 - Fase 2: tres assuntos no interrogatorio, com consultas opcionais a Lia e
-  Michael. As observacoes oferecem contexto; o jogador escolhe a interpretacao.
+  Michael. A interpretacao precisa ser acompanhada por uma prova coletada.
+  Hipoteses alternativas exigem distinguir suspeitas de fatos confirmados.
 - Fase 3: tres enigmas (termo ausente, intruso e chave por posicao), com dicas
-  opcionais de Sloane. Erros permitem nova tentativa.
+  opcionais de Sloane. Respostas numericas digitadas, sem alternativas;
+  a chave final combina quatro termos por posicao. Erros permitem nova tentativa.
 - Fase 4: selecao de duas evidencias que se sustentam e reconstrucao de quatro
   acontecimentos apresentados fora de ordem. Hipoteses incoerentes podem ser revistas.
 - Fase 5: exploracao do salao sem a equipe, tres novas pistas obrigatorias e
-  duas deducoes. Lorelai aparece como lembranca, nao como apoio na exploracao.
-- Epilogo: mesmo encerramento-base do prototipo, com avaliacao variavel de
-  desempenho. Erros nao criam finais alternativos.
+  duas deducoes, sustentadas por duas e tres provas, respectivamente.
+  Lorelai aparece como lembranca, nao como apoio na exploracao.
+- Epilogo: seis falas de fechamento do capitulo, com reflexao de Cassie e da
+  equipe, seguidas pelo relatorio de desempenho. Erros nao criam finais alternativos.
 
 O dossie marca evidencias utilizadas em deducoes corretas, sem classificar
 automaticamente os objetos como relevantes ou irrelevantes. Habilidades repetidas
 na mesma etapa nao geram novos pontos. Uma nova partida reinicia todas as etapas.
 
+Nos confrontos, o jogador pode consultar o dossie, selecionar provas em paginas
+e rever a hipotese antes de apresentar o argumento. Apenas pistas coletadas
+ficam disponiveis. A avaliacao exige a hipotese correta e o conjunto completo
+de provas relevantes; acertar apenas uma parte perde pontos. Ha ate tres espacos
+em qualquer argumento, sem revelar quantas provas sao necessarias. No interrogatorio,
+a equipe revisa o resultado. No final, erros bloqueiam a conclusao ate o jogador
+rever o argumento; o aviso nao revela qual parte estava correta.
+
 As falas do depoente, o horario 20h42, a chave 29 e as pistas do salao sao
 conteudo original de adaptacao para exercitar as mecanicas do GDD, nao citacoes
-nem acontecimentos confirmados do livro. Ainda faltam roteiro narrativo completo,
+nem acontecimentos confirmados do livro. Prologo e epilogo tambem usam falas
+originais do prototipo: fecham este capitulo, sem inventar o destino definitivo
+de Celine ou Lorelai. Ainda faltam roteiro narrativo completo,
 audio e animacoes de caminhada quadro a quadro.
 
 ## Salvamento
@@ -103,8 +120,12 @@ fechar normalmente a janela. O menu mostra **Continuar** quando existe uma
 partida valida. Enter no menu retoma essa partida.
 
 O salvamento inclui fase e subetapa, posicao, pistas utilizadas, pontuacao,
-habilidades ja consultadas e selecoes parciais da reconstrucao. Pausa e dossie
+habilidades ja consultadas e selecoes parciais da reconstrucao e dos confrontos.
+Salvamentos anteriores sao convertidos automaticamente para o formato 3,
+preservando o progresso e as conclusoes ja avaliadas. Pausa e dossie
 fecham ao retomar; mensagens temporarias reaparecem por alguns segundos.
+Falas da abertura e do encerramento e codigos parcialmente digitados tambem
+sao preservados. Continuar retoma a fase salva; Nova investigacao inicia o prologo.
 
 Na pausa, **Salvar partida** grava manualmente e **Salvar e voltar ao menu**
 retorna ao menu. **Nova investigacao** pede confirmacao antes de substituir

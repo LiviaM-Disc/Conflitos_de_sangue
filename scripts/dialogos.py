@@ -1,4 +1,6 @@
 PROLOGUE_LINES = [
+    ("Cassie", "A sala de visitas parece menor do outro lado da mesa. Daniel Redding me observa como se a minha primeira pergunta ja fosse uma resposta."),
+    ("Cassie", "Quero falar dos Masters. Nao das historias que contam sobre eles. Quero saber o que deixam para tras."),
     (
         "Daniel Redding",
         "Voce acha que esta olhando para uma pessoa, Cassie. Os Masters querem que voce olhe para um padrao.",
@@ -11,6 +13,26 @@ PROLOGUE_LINES = [
         "Daniel Redding",
         "Entao observe o que eles escolhem esconder. E, principalmente, quem eles escolhem manter por perto.",
     ),
+    ("Cassie", "Voce fala de pessoas como se fossem pecas. Quem escolhe onde cada uma fica?"),
+    ("Daniel Redding", "Uma pessoa recebe um convite. Outra recebe uma pergunta. As duas acreditam que a decisao seguinte e delas."),
+    ("Cassie", "Ele nao me deu um nome. Deu uma direcao. Ainda nao sei se esta avisando ou tentando conduzir a conversa."),
+]
+
+PROLOGUE_OUTRO = [
+    ("Dean", "Celine desapareceu. O escritorio ainda nao foi revirado. Se alguem quis deixar uma mensagem, podemos encontra-la la."),
+    ("Cassie", "A conversa com Redding volta a minha cabeca. Mas um aviso vago nao e prova de que os Masters estejam envolvidos."),
+    ("Lia", "Eu cuido do que as pessoas dizem. Michael observa as reacoes. Nenhum dos dois substitui o que voce encontrar."),
+    ("Sloane", "E guardem os numeros, mesmo os que parecerem fora de lugar. Um padrao so aparece quando temos com o que comparar."),
+    ("Cassie", "Primeiro Celine. Depois as nossas suspeitas. Entro no escritorio decidida a registrar o que existe, nao o que espero encontrar."),
+]
+
+EPILOGUE_LINES = [
+    ("Cassie", "Eu procurava o caminho de Celine. Cada pista tambem desenhava o meu. No salao, a diferenca entre investigar e ser conduzida finalmente ficou clara."),
+    ("Cassie", "O nome de Lorelai no bilhete nao prova quem o escreveu. Prova que alguem sabia onde me atingir. Nao vou transformar essa ferida em certeza."),
+    ("Dean", "No relato que Cassie deixou, o convite, o codigo e o salao formam uma mesma linha. Celine foi usada para aproxima-la dos Masters."),
+    ("Lia", "Uma mentira escondia medo. Uma promessa escondia uma porta fechada. O que parecia simples deixou de ser quando comparamos os registros."),
+    ("Cassie", "Este capitulo termina com a armadilha compreendida, nao com todas as respostas sobre Celine e Lorelai. O que ainda nao sabemos permanece no dossie como pergunta."),
+    ("Cassie", "Nao escolho as respostas que gostaria de ouvir. Escolho o que posso sustentar. E isso que fica no meu relatorio."),
 ]
 
 PROLOGUE_CHOICES = [
@@ -34,8 +56,8 @@ INTERROGATION_ROUNDS = [
         "michael": "Michael: a pergunta sobre o telefone provoca receio, nao surpresa.",
         "choices": [
             ("A ligacao contradiz o registro: o celular foi desligado as 20h42.", True),
-            ("Dizer que ela estava tranquila prova que ele planejou o desaparecimento.", False),
-            ("A pulseira confirma que Celine fez essa ligacao.", False),
+            ("Tratar o horario como aproximado e manter a ligacao no relato confirmado.", False),
+            ("Registrar que Celine usou outro aparelho, apesar de ele citar o celular dela.", False),
         ],
         "evidence": "lia_lie",
         "uses": ("broken_phone",),
@@ -47,8 +69,8 @@ INTERROGATION_ROUNDS = [
         "lia": "Lia: ele evita a palavra 'receber'. Ha algo omitido sobre o convite.",
         "michael": "Michael: quando voce mostra o papel, a tensao diminui. Ele ja conhecia o objeto.",
         "choices": [
-            ("Um convite sem remetente prova que Celine fugiu por vontade propria.", False),
-            ("A ausencia de remetente torna o papel irrelevante para o caso.", False),
+            ("Concentrar a suspeita em Celine: ela pode ter escrito o proprio convite.", False),
+            ("Aceitar que ele conheceu o convite agora; a reacao pode ser so nervosismo.", False),
             ("Pedir que explique como o convite chegou, sem acusa-lo do desaparecimento.", True),
         ],
         "evidence": "invitation_delivery",
@@ -61,9 +83,9 @@ INTERROGATION_ROUNDS = [
         "lia": "Lia: a negacao do medo nao combina com o restante da fala.",
         "michael": "Michael: ha medo real quando o nome aparece. Medo nao identifica um culpado.",
         "choices": [
-            ("Se ele sente medo, entao e o responsavel por tudo.", False),
+            ("Interpretar o medo como receio de ser descoberto e registra-lo como autor.", False),
             ("Investigar a pressao que sofreu e registrar a ligacao com o envelope.", True),
-            ("Descartar tudo o que disse, inclusive os fatos que podemos verificar.", False),
+            ("Atribuir a tensao apenas ao interrogatorio e encerrar a linha das ameacas.", False),
         ],
         "evidence": "witness_pressure",
         "uses": ("coded_invitation",),
@@ -79,8 +101,8 @@ PUZZLE_ROUNDS = [
      "prompt": "Qual numero nao pertence a esta sequencia?", "choices": (21, 30, 55), "answer": 30,
      "hint": "Sloane: uma intrusao pode ser retirada sem quebrar a regra dos demais termos."},
     {"title": "A chave do envelope", "values": ("3", "5", "8", "13", "21", "34"),
-     "prompt": "No verso: 'Terceiro + quinto'. Qual e a chave numerica?", "choices": (26, 24, 29), "answer": 29,
-     "hint": "Sloane: terceiro e quinto indicam posicoes na sequencia, nao os numeros 3 e 5."},
+     "prompt": "No verso: 'Quinto - terceiro + quarto + primeiro'. Qual e a chave numerica?", "choices": (26, 24, 29), "answer": 29,
+     "hint": "Sloane: os ordinais indicam posicoes. Substitua cada um pelo termo correspondente antes de calcular."},
 ]
 
 FINAL_CHOICES = [
@@ -89,11 +111,11 @@ FINAL_CHOICES = [
         True,
     ),
     (
-        "O caso nao tem relacao com Cassie; os Masters queriam apenas assustar Celine.",
+        "Celine era o alvo principal; a mensagem para Cassie foi um desvio posterior.",
         False,
     ),
     (
-        "Daniel Redding manipulou todas as pistas para esconder Sloane.",
+        "Lorelai deixou uma rota de resgate para Cassie; o padrao indica protecao.",
         False,
     ),
 ]
@@ -104,9 +126,9 @@ FINAL_ROUNDS = [
         "prompt": "O bilhete promete uma saida livre. A porta foi trancada por fora. Qual leitura resiste as pistas?",
         "hint": "Cassie: uma promessa pode ser parte da isca. Preciso compara-la ao que encontrei.",
         "choices": [
-            ("O bilhete basta para provar que Celine veio por vontade propria.", False),
+            ("A tranca protege quem esta dentro; o bilhete indica uma saida alternativa.", False),
             ("A porta contradiz o bilhete: a aparencia de escolha faz parte da armadilha.", True),
-            ("A tranca prova que Daniel esteve pessoalmente neste salao.", False),
+            ("O bilhete ficou desatualizado; a porta fechada nao altera a promessa inicial.", False),
         ],
         "uses": ("locked_exit", "lorelai_note"),
         "feedback": "A promessa de liberdade nao combina com a saida bloqueada. O ambiente foi preparado para conduzir alguem.",

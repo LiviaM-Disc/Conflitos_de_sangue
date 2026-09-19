@@ -10,6 +10,7 @@ os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 import pygame
 
 from scripts.cenas import Game
+from scripts.dialogos import INTERROGATION_ROUNDS, PROLOGUE_LINES
 from scripts.salvamento import SaveStore, snapshot, validate
 
 
@@ -58,7 +59,10 @@ class SavingTests(unittest.TestCase):
     def test_feedback_restores_without_rewarding_twice(self):
         game = self.game
         game.state = "interrogation"
+        game.investigation.add_evidence("broken_phone")
         self.click(game.interrogation_buttons()[0])
+        self.click(game.proof_buttons(INTERROGATION_ROUNDS[0])[0])
+        self.click(game.proof_buttons(INTERROGATION_ROUNDS[0])[-1])
         self.assertTrue(self.path.exists())
         score = game.investigation.score
         restarted = Game(self.screen, self.root, self.path)
@@ -67,6 +71,56 @@ class SavingTests(unittest.TestCase):
         button = restarted.interrogation_buttons()[0]
         restarted.handle_events([pygame.event.Event(pygame.MOUSEBUTTONDOWN, pos=button.rect.center, button=1)])
         self.assertEqual(restarted.investigation.score, score)
+
+    def test_partial_proofs_restore_and_old_saves_migrate(self):
+        game = self.game
+        game.state = "interrogation"
+        game.investigation.add_evidence("broken_phone")
+        self.click(game.interrogation_buttons()[0])
+        self.click(game.proof_buttons(INTERROGATION_ROUNDS[0])[0])
+        restarted = Game(self.screen, self.root, self.path)
+        restarted.continue_game()
+        self.assertEqual(restarted.proof_choice, 0)
+        self.assertEqual(restarted.proof_selection, ["broken_phone"])
+        restarted.draw()
+        old = snapshot(game)
+        old["version"] = 1
+        for key in ("proof_choice", "proof_selection", "proof_page", "prologue_outro_index", "epilogue_index", "puzzle_input"):
+            del old["progress"][key]
+        migrated = validate(old)
+        self.assertEqual(migrated["version"], 3)
+        self.assertEqual(migrated["progress"]["proof_choice"], -1)
+        self.assertEqual(migrated["investigation"], old["investigation"])
+
+    def test_uncollected_proof_is_rejected(self):
+        data = snapshot(self.game)
+        data["progress"].update(state="interrogation", proof_choice=0, proof_selection=["broken_phone"])
+        with self.assertRaises(ValueError):
+            validate(data)
+
+    def test_narrative_and_code_progress_round_trip(self):
+        for state, field, value in (("prologue", "prologue_outro_index", 2),
+                                    ("epilogue", "epilogue_index", 3),
+                                    ("puzzle", "puzzle_input", "29")):
+            with self.subTest(state=state):
+                self.game.start_game()
+                self.game.state = state
+                setattr(self.game, field, value)
+                self.assertTrue(self.game.save_progress())
+                restarted = Game(self.screen, self.root, self.path)
+                restarted.continue_game()
+                self.assertEqual(getattr(restarted, field), value)
+                restarted.draw()
+
+    def test_version_two_at_old_prologue_choice_migrates(self):
+        old = snapshot(self.game)
+        old["version"] = 2
+        old["progress"]["dialogue_index"] = 3
+        for key in ("prologue_outro_index", "epilogue_index", "puzzle_input"):
+            del old["progress"][key]
+        migrated = validate(old)
+        self.assertEqual(migrated["progress"]["dialogue_index"], len(PROLOGUE_LINES))
+        self.assertEqual(migrated["progress"]["prologue_outro_index"], -1)
 
     def test_exploration_and_quit_flush_position(self):
         game = self.game
