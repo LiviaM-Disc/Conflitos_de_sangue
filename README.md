@@ -1,6 +1,6 @@
 # Conflitos de Sangue
 
-Primeira versao jogavel em Python + Pygame baseada no GDD fornecido.
+Primeira versao jogavel em Python + Pygame baseada no GDD 
 
 ## Como rodar
 
