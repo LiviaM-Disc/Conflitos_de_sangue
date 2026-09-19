@@ -40,11 +40,11 @@ class InvestigationState:
         self.score += 10
         return True
 
-    def register_lie(self, correct: bool) -> None:
+    def register_lie(self, correct: bool, evidence_id: str = "lia_lie") -> None:
         if correct:
             self.lies_found += 1
             self.score += 15
-            self.add_evidence("lia_lie")
+            self.add_evidence(evidence_id)
         else:
             self.mistakes += 1
             self.score -= 20
@@ -74,10 +74,10 @@ class InvestigationState:
         return [EVIDENCES[key] for key in self.evidence]
 
     def final_rating(self) -> str:
-        if self.score >= 150:
+        if self.score >= 300 and self.mistakes <= 1 and self.correct_connections >= 4 and self.lies_found == 3:
             return "Investigacao exemplar"
-        if self.score >= 100:
+        if self.score >= 220:
             return "Investigacao solida"
-        if self.score >= 60:
+        if self.score >= 120:
             return "Investigacao incompleta"
         return "Muitas pontas soltas"

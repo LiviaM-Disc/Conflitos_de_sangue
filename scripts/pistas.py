@@ -43,8 +43,8 @@ EVIDENCES: dict[str, Evidence] = {
         id="broken_phone",
         name="Celular sem sinal",
         description=(
-            "O celular de Celine foi desligado antes da ultima mensagem chegar. "
-            "A linha do tempo foi manipulada."
+            "O registro mostra que o celular foi desligado as 20h42. "
+            "Depois disso, nao houve chamadas originadas pelo aparelho."
         ),
         kind="pista essencial",
         phase="fase1",
@@ -89,7 +89,7 @@ EVIDENCES: dict[str, Evidence] = {
         id="lia_lie",
         name="Mentira sobre o horario",
         description=(
-            "Lia percebe que a resposta sobre o horario nao combina com o recibo encontrado."
+            "O relato de uma ligacao as 21h contradiz o registro do aparelho, desligado as 20h42."
         ),
         kind="contradicao",
         phase="fase2",
@@ -114,7 +114,7 @@ EVIDENCES: dict[str, Evidence] = {
         name="Chave Fibonacci",
         description=(
             "Sloane reconhece que os numeros obedecem a uma soma progressiva: "
-            "3, 5, 8, 13, 21, 34."
+            "3, 5, 8, 13, 21, 34. A chave 29 revela uma mensagem pedindo que Cassie venha sozinha."
         ),
         kind="padrao",
         phase="fase3",
@@ -148,7 +148,33 @@ EVIDENCES: dict[str, Evidence] = {
         essential=True,
         ability="Cassie",
     ),
+    "invitation_delivery": Evidence(
+        "invitation_delivery", "Entrega do envelope",
+        "O depoente admite ter entregado o convite a pedido de um desconhecido.",
+        "depoimento", "fase2", 10,
+    ),
+    "witness_pressure": Evidence(
+        "witness_pressure", "Ameaca apos a entrega",
+        "O depoente relata uma ameaca posterior a entrega. A mentira nao demonstra autoria do desaparecimento.",
+        "depoimento", "fase2", 10,
+    ),
+    "locked_exit": Evidence(
+        "locked_exit", "Saida bloqueada",
+        "A porta foi trancada por fora, embora o bilhete prometa que a saida estaria livre.",
+        "observacao", "fase5", 10, True,
+    ),
+    "lorelai_note": Evidence(
+        "lorelai_note", "Bilhete no retrato",
+        "Atras do retrato: 'Cassie, as respostas sobre Lorelai estao aqui. A saida esta livre.'",
+        "mensagem", "fase5", 10, True,
+    ),
+    "hall_pattern": Evidence(
+        "hall_pattern", "Marcas no mosaico",
+        "As marcas 3, 5, 8, 13, 21 e 34 repetem o padrao do convite encontrado no escritorio.",
+        "padrao", "fase5", 10, True,
+    ),
 }
 
 
 PHASE1_REQUIRED = {"celine_bracelet", "broken_phone", "coded_invitation"}
+FINAL_REQUIRED = {"locked_exit", "lorelai_note", "hall_pattern"}
