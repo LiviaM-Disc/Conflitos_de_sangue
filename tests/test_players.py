@@ -82,3 +82,33 @@ class PlayerFlowTests(unittest.TestCase):
         self.g.player_screens.accept_name()
         self.assertEqual(self.g.state, "menu")
         self.assertEqual(self.path.read_bytes(), previous)
+
+    def test_pending_result_cannot_be_overwritten_by_new_game(self):
+        self.g.start_game(player_name="Ana")
+        self.g.campaign_data.update(chapter=7, room="final_chamber", view="report")
+        self.g.investigation.score = 150
+        self.g.save_progress()
+        original_run = self.g.run_id
+        self.g.reset_to_menu()
+        self.store.record.side_effect = OSError("database locked")
+        self.g.player_screens.new_game()
+        self.assertEqual(self.g.run_id, original_run)
+        self.assertEqual(self.g.campaign_data["view"], "report")
+        self.assertEqual(self.g.player_screens.active, "ranking")
+        self.assertFalse(self.g.result_saved)
+
+    def test_ranking_pagination_and_name_screen_render(self):
+        self.g.start_game(player_name="Ana")
+        self.store.standings.return_value = [{"position": i+1, "name": "W"*24,
+            "score": 500-i, "mistakes": i, "current": i == 10} for i in range(15)]
+        self.g.player_screens.show_ranking()
+        for page in range(3):
+            self.assertEqual(self.g.player_screens.page, page)
+            self.g.draw()
+            if page < 2:
+                button = next(b for b in self.g.player_screens.buttons() if b.value == "next")
+                self.g.handle_events([pygame.event.Event(pygame.MOUSEBUTTONDOWN, button=1, pos=button.rect.center)])
+        self.g.player_screens.ask_name()
+        self.g.player_screens.name = "W"*24
+        self.assertLessEqual(self.g.fonts.h2.size("W"*24 + "|")[0], 576)
+        self.g.draw()

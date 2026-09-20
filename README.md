@@ -4,6 +4,33 @@ Primeira versao jogavel em Python + Pygame baseada no GDD
 
 ## Campanha expandida
 
+### Jogadores e ranking Django
+
+No menu, Iniciar/Nova investigacao pede um apelido de 2 a 24 caracteres.
+O mesmo apelido (ignorando maiusculas) identifica o mesmo jogador; nao ha
+login nem senha. Use apelidos diferentes para pessoas diferentes.
+
+O Django armazena jogadores e todas as partidas concluidas em
+`saves/ranking.sqlite3`. O Pygame usa o ORM diretamente, sem servidor HTTP
+ou internet. As migrations sao aplicadas automaticamente no primeiro acesso.
+O ranking mostra a melhor partida por jogador. Empates: menos erros, depois
+o resultado registrado primeiro. Ao terminar o epilogo, o resultado e
+registrado; reabrir o relatorio nao duplica a partida. Falhas de banco permitem
+tentar novamente em Ranking, sem fingir que o resultado foi salvo.
+
+Cada evidencia nova vale 10 pontos; enigmas e deducoes corretos valem 20,
+alem das novas evidencias concedidas. Cada erro penalizado custa 5 pontos,
+com piso zero. Dicas sao gratuitas; reexaminar pistas nao rende pontos extras.
+Nao ha bloqueio por erros. Os descontos valem para a campanha expandida.
+
+Partidas anteriores ao formato 5 preservam seu progresso e podem ser
+concluidas; sao guardadas no historico, mas nao entram no ranking competitivo,
+pois comecaram sem as mesmas penalidades. Uma nova partida usa as novas regras.
+O teste separado do escritorio e a campanha antiga nao participam do ranking.
+
+Este ranking e local ao computador, sem autenticacao nem protecao contra
+edicao manual de arquivos. Nao e um servico de competicao online.
+
 ### Investigacao interativa: escritorio
 
 O menu inclui `Teste anterior do escritorio`, um trecho independente preservado
@@ -65,14 +92,14 @@ final cruza referencias documentais, nao destranca uma saida.
 Todo enigma tem duas dicas progressivas e uma opcao explicita de ver a
 resposta. Consultar dicas nao resolve o enigma automaticamente nem apaga a
 resposta em andamento. As dicas sao gratuitas e ficam registradas no save.
-Erros nao retiram pontos, itens ou progresso e nao bloqueiam os paineis.
+Erros descontam 5 pontos, sem saldo negativo, perda de itens ou bloqueio dos paineis.
 Os terminais narrativos da quinta fase continuam permitindo duas consultas
 diferentes; esse limite nao se aplica ao botao Dica.
 
 **Nova investigacao** inicia o roteiro expandido. **Continuar** preserva a
 historia da partida salva: saves antigos seguem na campanha anterior, sem
 misturar tramas. Confirmar nova partida substitui o unico slot. O formato atual
-de save e 4, incluindo inventario, bloqueios, consultas e checkpoint.
+de save e 5, incluindo identificacao da partida, jogador, inventario e consultas.
 
 As artes existentes foram reutilizadas nos novos ambientes; os comodos ainda
 nao possuem todos fundos exclusivos. A duracao de 4 a 6 horas do documento e
@@ -97,13 +124,17 @@ dados com condicoes para liberar salas e conferir respostas.
 Inventario, deducoes e salvamento sao extensoes: nao estao ensinados passo a
 passo no PDF. Para limitar a complexidade, o deslocamento entre salas usa
 botoes, gravacoes e videos usam texto, e os mecanismos usam selecoes e codigos.
-Nao ha outro motor, framework, banco de dados ou sintese de audio.
+O motor continua sendo Pygame; nao ha sintese de audio. Django e SQLite
+foram acrescentados apenas para atender ao requisito de jogadores e ranking.
 
 ## Como rodar
+
+Neste computador, abra `Jogar.cmd`. Na primeira preparacao de outro computador:
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe manage.py migrate
 .\.venv\Scripts\python.exe main.py
 ```
 
@@ -218,7 +249,7 @@ partida valida. Enter no menu retoma essa partida.
 
 O salvamento inclui fase e subetapa, posicao, pistas utilizadas, pontuacao,
 habilidades ja consultadas e selecoes parciais da reconstrucao e dos confrontos.
-Salvamentos anteriores sao convertidos automaticamente para o formato 4,
+Salvamentos anteriores sao convertidos automaticamente para o formato 5,
 preservando o progresso e as conclusoes ja avaliadas. Pausa e dossie
 fecham ao retomar; mensagens temporarias reaparecem por alguns segundos.
 Falas da abertura e do encerramento e codigos parcialmente digitados tambem
@@ -236,6 +267,9 @@ Os testes usam pastas temporarias e nao alteram o progresso real do jogador.
 
 ```powershell
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
+.\.venv\Scripts\python.exe manage.py test ranking_app
+.\.venv\Scripts\python.exe manage.py check
+.\.venv\Scripts\python.exe manage.py ranking
 ```
 
 ## Estrutura
@@ -251,3 +285,11 @@ Os testes usam pastas temporarias e nao alteram o progresso real do jogador.
 - `scripts/dialogos.py`: falas e escolhas narrativas
 - `scripts/pistas.py`: base de evidencias investigaveis
 - `scripts/salvamento.py`: formato, validacao e gravacao do progresso
+- `scripts/jogadores.py`: nome do jogador e tela de ranking
+- `scripts/ranking.py`: integracao do Pygame com o ORM do Django
+- `ranking_app/models.py`: jogadores e resultados persistidos
+- `ranking_project/settings.py`: banco SQLite e configuracao local do Django
+
+Manuais: `docs/Manual_do_Jogador.docx` e `docs/Guia_de_Respostas.docx`.
+As versoes em Markdown ficam na mesma pasta. O ORM em um programa Python
+independente segue a [documentacao oficial do Django](https://docs.djangoproject.com/en/5.2/topics/settings/#calling-django-setup-is-required-for-standalone-django-usage).

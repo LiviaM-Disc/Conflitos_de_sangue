@@ -382,7 +382,9 @@ class ExpandedCampaignTests(unittest.TestCase):
         self.c.checkpoint()
         self.inspect("card_holder")
         self.game.investigation.score = 18
-        for _ in range(5):
+        self.c.penalize("Primeiro erro")
+        self.assertEqual(self.game.investigation.score, 13)
+        for _ in range(4):
             self.c.penalize("Ruido")
         self.assertEqual(self.c.data["inventory"], ["clip"])
         self.assertEqual(self.c.data["exposure"], 0)

@@ -3,7 +3,8 @@
 ## Estrutura preservada
 
 Python, Pygame, Game, Player, Button, FontBook e InvestigationState permanecem
-como base. Nao ha novo framework nem dependencia externa. O controlador
+como base do jogo. Django foi acrescentado somente para armazenar jogadores
+e resultados com seu ORM em SQLite, sem substituir o loop do Pygame. O controlador
 `scripts/campanha.py` recebe eventos, atualiza estados e desenha as cenas;
 `scripts/roteiro_expandido.py` guarda falas, salas, objetos, dependencias,
 enigmas, itens e provas. `scripts/cenas.py` encaminha a nova campanha ao
@@ -52,7 +53,8 @@ todos os dados. Foram definidos dados locais, sem acrescentar autoria a Lorelai:
 - O manual no corredor explica a transformacao do codigo final, permitindo
   resolver o painel mesmo sem consultar o terminal de Sloane.
 - Cada enigma resolvido registra um checkpoint para compatibilidade. Erros
-  nao provocam retorno, perda de pontos ou tempo de espera na campanha atual.
+  nao provocam retorno nem tempo de espera. Cada erro penalizado desconta
+  5 pontos, com pontuacao minima zero.
 - Todos os enigmas possuem duas dicas graduais e uma revelacao opcional da
   resposta. A consulta preserva selecoes e nao conclui o enigma automaticamente.
 - A melhor classificacao exige poucos erros, nenhuma identidade atribuida sem
@@ -70,7 +72,7 @@ Os fundos ilustrados existentes sao reutilizados; nao se
 afirma que todos os novos comodos ja tenham arte exclusiva. A fotografia, o
 video, as gravacoes e os mecanismos sao representados por registros e paineis
 interativos, nao por novos filmes ou vozes gravadas. Uma escolha errada de
-gravacao mostra uma mensagem, sem retirar pontos ou usar sintese de audio.
+gravacao mostra uma mensagem e desconta 5 pontos, sem sintese de audio.
 
 A meta de duracao de 30-50 minutos por fase precisa de teste com jogadores.
 Os testes automatizados verificam progressao, dependencias e recuperacao,
@@ -78,8 +80,11 @@ nao garantem esse tempo de jogo nem o nivel subjetivo de dificuldade.
 
 ## Compatibilidade e verificacao
 
-Save 4 inclui a campanha expandida e migra os formatos 1-3 sem trocar a
+Save 5 inclui identificacao do jogador e da partida, alem da campanha, e migra os formatos 1-4 sem trocar a
 historia de uma partida iniciada. Novas partidas usam a campanha expandida.
 Os testes usam SDL dummy e arquivos temporarios; nao alteram saves do usuario.
 
 Comando: `.\.venv\Scripts\python.exe -m unittest discover -s tests -v`.
+
+Banco Django: `.\.venv\Scripts\python.exe manage.py test ranking_app`.
+Partidas antigas ficam fora do ranking competitivo para nao misturar regras.
