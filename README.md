@@ -2,6 +2,103 @@
 
 Primeira versao jogavel em Python + Pygame baseada no GDD 
 
+## Campanha expandida
+
+### Investigacao interativa: escritorio
+
+O menu inclui `Teste anterior do escritorio`, um trecho independente preservado
+como opcao secundaria. A campanha completa e a opcao principal. Clique nos objetos do cenario
+para examina-los. O inventario permanece visivel; selecione a chave ou o
+cracha e clique no destino. O bilhete e a fotografia podem ser relidos ali.
+
+Nao ha fuga, porta trancada ou codigo de saida. Cassie pode ir e voltar entre
+o escritorio e a sala da equipe desde o inicio. A chave abre a gaveta; o cracha
+permite consultar os acessos no computador. Apos essa consulta, um envelope
+aparece na mesa. A fotografia anterior e o celular ajudam a sustentar a conversa
+com Dean. O trecho termina com uma descoberta sobre a interferencia no caso,
+nao com uma fuga. A analise posterior da mensagem faz parte da campanha completa.
+Ha dicas graduais, pontuacao e interacoes visuais. Tudo funciona com mouse;
+ESC pausa. As salas reutilizam as artes existentes.
+
+O progresso deste teste fica em `saves/escritorio_escape.json`, separado de
+`saves/progresso.json`. O botao do escritorio retoma o teste salvo; ao concluir,
+`Jogar novamente` reinicia apenas esse trecho. A campanha anterior nao e alterada.
+O nome antigo do arquivo foi mantido para compatibilidade. Saves do prototipo
+de fuga preservam os objetos, mas retomam a investigacao sem inventar as novas
+descobertas; o teclado e a conclusao de fuga sao removidos na migracao.
+Implementacao em `scripts/escritorio_escape.py`, apenas Pygame e biblioteca
+padrao: imagens existentes, retangulos, classes, eventos e estados de cena.
+
+### Roteiro completo
+
+Novas partidas usam `Conflitos_de_Sangue_Roteiro_Expandido_Jogo.docx`: prologo,
+seis fases e epilogo. Ha mapa de ambientes, inventario separado do dossie,
+combinacao de objetos, retorno a salas anteriores e enigmas encadeados.
+
+Novas partidas comecam com quatro telas de abertura: aviso de conteudo,
+contexto do caso, retratos e especialidades da equipe e objetivo inicial.
+Depois vem a entrevista original de seis falas com Daniel Redding.
+O epilogo termina com a indicacao de que a investigacao continua, sem resolver
+os misterios restantes. O texto de abertura e adaptacao narrativa para o jogo.
+Saves anteriores preservam sua sequencia de dialogo; partidas avancadas nao
+repetem a abertura nem perdem progresso.
+
+O estilo de investigacao por cliques abrange o prologo, as seis fases e o
+epilogo. Botoes de passagem conectam os ambientes; objetos e personagens
+podem ser examinados no cenario. O inventario fica visivel, com seis itens
+por pagina: selecione um objeto e clique no destino, ou selecione dois e
+use Combinar. Os itens nao sao aplicados automaticamente.
+
+O objetivo do capitulo permanece visivel. Dica explica o proximo passo
+somente quando solicitada, sem executar a acao. Mapa e inventario completo
+sao consultas opcionais; a campanha pode ser concluida com o mouse e a
+barra de itens. Os paineis numericos possuem teclado na tela. O catalogo
+final cruza referencias documentais, nao destranca uma saida.
+
+- I: inventario. Selecione ate dois objetos para usar ou combinar.
+- M: mapa. Escolha uma fase ja alcancada e depois o ambiente.
+- Q: consultas limitadas; TAB: dossie; ESC: pausa e salvamento.
+- Mouse: examinar objetos, escolher destinos e responder aos enigmas.
+- Numeros: codigos; Enter: confirmar; Backspace: corrigir.
+- WASD/setas e E continuam disponiveis na exploracao.
+
+Todo enigma tem duas dicas progressivas e uma opcao explicita de ver a
+resposta. Consultar dicas nao resolve o enigma automaticamente nem apaga a
+resposta em andamento. As dicas sao gratuitas e ficam registradas no save.
+Erros nao retiram pontos, itens ou progresso e nao bloqueiam os paineis.
+Os terminais narrativos da quinta fase continuam permitindo duas consultas
+diferentes; esse limite nao se aplica ao botao Dica.
+
+**Nova investigacao** inicia o roteiro expandido. **Continuar** preserva a
+historia da partida salva: saves antigos seguem na campanha anterior, sem
+misturar tramas. Confirmar nova partida substitui o unico slot. O formato atual
+de save e 4, incluindo inventario, bloqueios, consultas e checkpoint.
+
+As artes existentes foram reutilizadas nos novos ambientes; os comodos ainda
+nao possuem todos fundos exclusivos. A duracao de 4 a 6 horas do documento e
+uma meta, nao um tempo validado desta implementacao. Detalhes e decisoes de
+adaptacao estao em `docs/IMPLEMENTACAO_ROTEIRO_EXPANDIDO.md`.
+
+## Relacao com o estudo dirigido
+
+A base continua em Pygame, com a organizacao ensinada no material:
+
+- Paginas 5-7: pastas `assets` e `scripts`, janela e repeticao principal em `main.py`.
+- Paginas 9-10: classe do jogador, movimento, desenho e caixa de colisao em `scripts/personagens.py` (equivalente ao `jogador.py` do estudo).
+- Paginas 13-15: troca de cenas por estado em `scripts/cenas.py`.
+- Paginas 16-20: textos e botoes em `scripts/interfaces.py`.
+- Paginas 20-22: verificacoes de colisao e contadores de pontuacao.
+
+O roteiro usa essa mesma sequencia: receber eventos, atualizar e desenhar.
+As falas e os desafios ficam em listas e dicionarios de
+`scripts/roteiro_expandido.py`; a classe de `scripts/campanha.py` consulta esses
+dados com condicoes para liberar salas e conferir respostas.
+
+Inventario, deducoes e salvamento sao extensoes: nao estao ensinados passo a
+passo no PDF. Para limitar a complexidade, o deslocamento entre salas usa
+botoes, gravacoes e videos usam texto, e os mecanismos usam selecoes e codigos.
+Nao ha outro motor, framework, banco de dados ou sintese de audio.
+
 ## Como rodar
 
 ```powershell
@@ -74,7 +171,7 @@ O interrogatorio mostra o resultado antes de seguir. O dossie exibe todas as
 evidencias em paginas de quatro registros. Pausar ou consultar pistas congela
 o tempo das mensagens.
 
-## Conteudo jogavel
+## Conteudo da campanha anterior
 
 - Prologo: conversa de oito falas com Redding, escolha investigativa e cinco
   falas de preparacao com a equipe antes de entrar no escritorio.
@@ -121,7 +218,7 @@ partida valida. Enter no menu retoma essa partida.
 
 O salvamento inclui fase e subetapa, posicao, pistas utilizadas, pontuacao,
 habilidades ja consultadas e selecoes parciais da reconstrucao e dos confrontos.
-Salvamentos anteriores sao convertidos automaticamente para o formato 3,
+Salvamentos anteriores sao convertidos automaticamente para o formato 4,
 preservando o progresso e as conclusoes ja avaliadas. Pausa e dossie
 fecham ao retomar; mensagens temporarias reaparecem por alguns segundos.
 Falas da abertura e do encerramento e codigos parcialmente digitados tambem
@@ -145,6 +242,9 @@ Os testes usam pastas temporarias e nao alteram o progresso real do jogador.
 
 - `main.py`: inicializacao do Pygame e loop principal
 - `scripts/cenas.py`: estados de jogo, fases e transicoes
+- `scripts/campanha.py`: regras da campanha expandida
+- `scripts/campanha_visual.py`: passagens, objetos visuais e inventario na tela
+- `scripts/roteiro_expandido.py`: salas, falas, itens e enigmas da campanha
 - `scripts/personagens.py`: jogador e retratos dos personagens
 - `scripts/interfaces.py`: botoes, paineis, texto e HUD
 - `scripts/investigacao.py`: pontuacao, pistas, deducoes e progresso

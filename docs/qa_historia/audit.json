@@ -1,0 +1,52 @@
+{
+  "source_sha256": "d9fddab177614feab0660b15666bc1f2a67a58b26a037a4c604d98d0333a1a17",
+  "output": "C:\\Users\\lb119\\Conflitos_de_sangue\\docs\\Historia_do_jogo_Conflitos_de_Sangue.docx",
+  "paragraphs": 194,
+  "parts": {
+    "word/numbering.xml": {
+      "sha256": "a0dc5c22a38a8d4b361fdca553d93ec5d553970e9851da6fa9b207020b85cdf7",
+      "bytes": 11531,
+      "preserved": true
+    },
+    "word/settings.xml": {
+      "sha256": "43446eb227d8f1d77bd22712936a18ef45d3416259a51b37b5fab5eceabf40e1",
+      "bytes": 2189,
+      "preserved": true
+    },
+    "word/fontTable.xml": {
+      "sha256": "737a2c4505c65fcb20fe02f634fd01b6f57f2990fafa86fdb4b5d5cb5a87abe5",
+      "bytes": 1719,
+      "preserved": true
+    },
+    "word/styles.xml": {
+      "sha256": "e2dd0c11291ea61b378bdde837f748cf3ecbf955da5cecbd0cda2bf06b673fd1",
+      "bytes": 7145,
+      "preserved": true
+    },
+    "word/document.xml": {
+      "sha256": "8ccda58cea0e99228e5f20c59a1e8d247181a8a74afcacbc0442362087e896ff",
+      "bytes": 307535,
+      "preserved": false
+    },
+    "word/_rels/document.xml.rels": {
+      "sha256": "2f88ba313d7d77c73d3737c12338686a29f13f029e69a783e026da83a7dd891c",
+      "bytes": 812,
+      "preserved": true
+    },
+    "_rels/.rels": {
+      "sha256": "1cc87395d4a229f21c23af406724de12dd9454071925f983e4b648a7b2be8cc5",
+      "bytes": 298,
+      "preserved": true
+    },
+    "word/theme/theme1.xml": {
+      "sha256": "b2295d3198893d2c03f5e584c749a15751b798aefdcd9bee2889f13903d68cb2",
+      "bytes": 7643,
+      "preserved": true
+    },
+    "[Content_Types].xml": {
+      "sha256": "70100a2bc0a6ff5fcce135d1b8ab0d9f108c4cdd39ead3ce88eda6ca2b6d7581",
+      "bytes": 1172,
+      "preserved": true
+    }
+  }
+}

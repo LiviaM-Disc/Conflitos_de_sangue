@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from pathlib import Path
+from copy import deepcopy
+from uuid import uuid4
 
 import pygame
 
@@ -39,10 +41,13 @@ from scripts.investigacao import InvestigationState
 from scripts.personagens import CHARACTERS, Player, load_portrait
 from scripts.pistas import EVIDENCES, FINAL_REQUIRED
 from scripts.salvamento import SaveStore, STAGES, PROGRESS_FIELDS, snapshot
+from scripts.campanha import ExpandedCampaign, new_campaign
+from scripts.escritorio_escape import OfficeEscape
+from scripts.jogadores import PlayerScreens
 
 
 class Game:
-    def __init__(self, screen: pygame.Surface, root: Path, save_path: Path | None = None) -> None:
+    def __init__(self, screen: pygame.Surface, root: Path, save_path: Path | None = None, ranking_store=None) -> None:
         self.screen = screen
         self.root = root
         self.assets_dir = root / "assets"
@@ -59,6 +64,11 @@ class Game:
             except (OSError, ValueError, TypeError, KeyError):
                 self.save_notice = "Nao foi possivel ler o progresso salvo. O arquivo foi preservado."
         self.investigation = InvestigationState()
+        self.player_name = ""
+        self.run_id = str(uuid4())
+        self.ranking_eligible = True
+        self.result_saved = False
+        self.player_screens = PlayerScreens(self, ranking_store)
         self.player_poses = {
             pose: load_portrait(self.assets_dir / "personagens", "cassie", (92, 142), pose)
             for pose in ("idle", "walk", "action")
@@ -76,6 +86,9 @@ class Game:
                                 for key in CHARACTERS}
 
         self.running = True
+        self.campaign_data = new_campaign()
+        self.campaign = ExpandedCampaign(self)
+        self.office_escape = OfficeEscape(self, save_path.with_name("escritorio_escape.json") if save_path else None)
         self.state = "menu"
         self.paused = False
         self.show_clues = False
@@ -150,13 +163,17 @@ class Game:
         ]
 
     def handle_events(self, events: list[pygame.event.Event]) -> None:
-        before = snapshot(self) if self.save_store and self.state != "menu" else None
+        before = (deepcopy(self.office_escape.data) if self.state == "escape_room" else snapshot(self)) if self.save_store and self.state != "menu" else None
         self.dispatch_events(events)
-        if self.running and self.save_store and self.state != "menu" and snapshot(self) != before:
+        after = self.office_escape.data if self.state == "escape_room" else snapshot(self)
+        if self.running and self.save_store and self.state != "menu" and after != before:
             self.save_progress()
 
     def dispatch_events(self, events: list[pygame.event.Event]) -> None:
         for event in events:
+            if self.player_screens.active:
+                self.player_screens.handle_event(event)
+                continue
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE and self.show_clues:
                     self.show_clues = False
@@ -165,7 +182,7 @@ class Game:
                     self.paused = not self.paused
                     self.show_clues = False
                     continue
-                if event.key == pygame.K_TAB and self.state != "menu" and not self.paused:
+                if event.key == pygame.K_TAB and self.state not in {"menu", "escape_room"} and not self.paused:
                     self.show_clues = not self.show_clues
                     continue
 
@@ -175,6 +192,10 @@ class Game:
 
             if self.state == "menu":
                 self.handle_menu_event(event)
+            elif self.state == "campaign":
+                self.campaign.handle_event(event)
+            elif self.state == "escape_room":
+                self.office_escape.handle_event(event)
             elif self.state == "prologue":
                 self.handle_prologue_event(event)
             elif self.state == "phase1":
@@ -225,23 +246,27 @@ class Game:
                 if button.hit(event):
                     self.confirm_new = False
                     if button.value == "new":
-                        self.start_game()
+                        self.player_screens.new_game()
             return
         if event.type == pygame.KEYDOWN and event.key in {pygame.K_RETURN, pygame.K_SPACE}:
             if self.saved_game:
                 self.continue_game()
             else:
-                self.start_game()
+                self.player_screens.new_game()
             return
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             for button in self.menu_buttons():
                 if button.hit(event):
                     if button.value == "continue":
                         self.continue_game()
+                    elif button.value == "escape":
+                        self.office_escape.start()
+                    elif button.value == "ranking":
+                        self.player_screens.show_ranking()
                     elif self.saved_game:
                         self.confirm_new = True
                     else:
-                        self.start_game()
+                        self.player_screens.new_game()
                     return
 
     def handle_prologue_event(self, event: pygame.event.Event) -> None:
@@ -507,7 +532,7 @@ class Game:
         if self.save_elapsed >= 5 and self.state != "menu":
             self.save_progress()
             self.save_elapsed = 0.0
-        if self.paused or self.show_clues:
+        if self.paused or self.show_clues or self.player_screens.active:
             return
         if self.message_timer > 0:
             self.message_timer -= dt
@@ -517,10 +542,19 @@ class Game:
         if self.state == "phase1" or (self.state == "finale" and self.final_mode == "explore"):
             obstacles = self.obstacles if self.state == "phase1" else ()
             self.player.update(dt, pygame.key.get_pressed(), self.room_bounds, obstacles)
+        elif self.state == "campaign":
+            self.campaign.update(dt)
 
     def draw(self) -> None:
+        if self.player_screens.active:
+            self.player_screens.draw()
+            return
         if self.state == "menu":
             self.draw_menu()
+        elif self.state == "campaign":
+            self.campaign.draw()
+        elif self.state == "escape_room":
+            self.office_escape.draw()
         elif self.state == "prologue":
             self.draw_prologue()
         elif self.state == "phase1":
@@ -585,6 +619,12 @@ class Game:
         if self.saved_game:
             saved = self.saved_game
             label = f"{STAGES[saved['progress']['state']]}  /  {saved['investigation']['score']} pontos"
+            if saved["progress"]["state"] == "campaign":
+                chapter = saved["progress"]["campaign_data"]["chapter"]
+                stage = "Prologo" if chapter == 0 else "Epilogo" if chapter == 7 else f"Fase {chapter} de 6"
+                label = f"Roteiro expandido / {stage} / {saved['investigation']['score']} pontos"
+            else:
+                label = "Roteiro anterior / " + label
             draw_text(self.screen, label, self.fonts.small, TEXT, pygame.Rect(180, 644, 760, 30), align="center")
         if self.confirm_new:
             overlay = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
@@ -878,7 +918,14 @@ class Game:
         self.message = message
         self.message_timer = seconds
 
-    def start_game(self) -> None:
+    def start_game(self, expanded: bool = True, player_name: str = "") -> None:
+        self.player_screens.active = ""
+        self.player_name = player_name
+        self.run_id = str(uuid4())
+        self.ranking_eligible = expanded
+        self.result_saved = False
+        self.player_screens.result_notice = ""
+        self.campaign_data = new_campaign()
         self.prologue_outro_index = -1
         self.epilogue_index = 0
         self.puzzle_input = ""
@@ -887,7 +934,7 @@ class Game:
         self.proof_page = 0
         self.investigation = InvestigationState()
         self.player = Player((485, 535), self.player_poses)
-        self.state = "prologue"
+        self.state = "campaign" if expanded else "prologue"
         self.dialogue_index = 0
         self.puzzle_step = 0
         self.profile_selection = []
@@ -910,21 +957,28 @@ class Game:
         if self.save_store and self.state != "menu" and not self.save_progress():
             return
         self.state = "menu"
+        self.player_screens.active = ""
         self.paused = False
         self.show_clues = False
         self.set_message("")
 
     def menu_buttons(self) -> list[Button]:
         if self.saved_game:
-            return [Button(pygame.Rect(435, 490, 250, 56), "Continuar", "continue"),
-                    Button(pygame.Rect(435, 562, 250, 56), "Nova investigacao", "new")]
-        return [Button(pygame.Rect(435, 505, 250, 58), "Iniciar investigacao", "start")]
+            return [Button(pygame.Rect(370, 436, 380, 50), "Continuar investigacao", "continue", selected=True),
+                    Button(pygame.Rect(370, 505, 380, 50), "Nova investigacao", "new"),
+                    Button(pygame.Rect(370, 573, 185, 50), "Ranking", "ranking"),
+                    Button(pygame.Rect(565, 573, 185, 50), "Teste escritorio", "escape")]
+        return [Button(pygame.Rect(370, 470, 380, 54), "Iniciar investigacao", "start", selected=True),
+                Button(pygame.Rect(370, 548, 185, 54), "Ranking", "ranking"),
+                Button(pygame.Rect(565, 548, 185, 54), "Teste escritorio", "escape")]
 
     def new_game_buttons(self) -> list[Button]:
         return [Button(pygame.Rect(310, 412, 220, 52), "Cancelar", "cancel"),
                 Button(pygame.Rect(558, 412, 250, 52), "Iniciar nova", "new")]
 
     def save_progress(self) -> bool:
+        if self.state == "escape_room":
+            return self.office_escape.save()
         if not self.save_store or self.state == "menu":
             return False
         data = snapshot(self)
@@ -955,7 +1009,7 @@ class Game:
         saved = self.saved_game
         for key in PROGRESS_FIELDS:
             value = saved["progress"][key]
-            setattr(self, key, list(value) if isinstance(value, list) else value)
+            setattr(self, key, deepcopy(value))
         inv = dict(saved["investigation"])
         inv["evidence"] = dict(inv["evidence"])
         inv["used_abilities"] = set(inv["used_abilities"])
@@ -968,6 +1022,8 @@ class Game:
         self.confirm_new = False
         self.message_timer = 8.0 if self.message else 0.0
         self.save_elapsed = 0.0
+        if self.state == "campaign" and not self.player_name and self.player_screens.store:
+            self.player_screens.ask_name(resume=True)
 
     def prologue_choice_buttons(self) -> list[Button]:
         return [

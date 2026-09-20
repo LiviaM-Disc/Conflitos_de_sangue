@@ -30,7 +30,7 @@ class SavingTests(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.path = Path(self.temp.name) / "saves" / "progresso.json"
         self.game = Game(self.screen, self.root, self.path)
-        self.game.start_game()
+        self.game.start_game(expanded=False)
 
     def click(self, button):
         self.game.handle_events([pygame.event.Event(pygame.MOUSEBUTTONDOWN, pos=button.rect.center, button=1)])
@@ -88,7 +88,7 @@ class SavingTests(unittest.TestCase):
         for key in ("proof_choice", "proof_selection", "proof_page", "prologue_outro_index", "epilogue_index", "puzzle_input"):
             del old["progress"][key]
         migrated = validate(old)
-        self.assertEqual(migrated["version"], 3)
+        self.assertEqual(migrated["version"], 5)
         self.assertEqual(migrated["progress"]["proof_choice"], -1)
         self.assertEqual(migrated["investigation"], old["investigation"])
 
@@ -103,7 +103,7 @@ class SavingTests(unittest.TestCase):
                                     ("epilogue", "epilogue_index", 3),
                                     ("puzzle", "puzzle_input", "29")):
             with self.subTest(state=state):
-                self.game.start_game()
+                self.game.start_game(expanded=False)
                 self.game.state = state
                 setattr(self.game, field, value)
                 self.assertTrue(self.game.save_progress())
@@ -139,13 +139,17 @@ class SavingTests(unittest.TestCase):
         game.investigation.add_evidence("broken_phone")
         game.reset_to_menu()
         previous = self.path.read_bytes()
-        self.click(game.menu_buttons()[1])
+        self.click(next(button for button in game.menu_buttons() if button.value == "new"))
         self.assertTrue(game.confirm_new)
         self.click(game.new_game_buttons()[0])
         self.assertEqual(self.path.read_bytes(), previous)
-        self.click(game.menu_buttons()[1])
+        self.click(next(button for button in game.menu_buttons() if button.value == "new"))
         self.click(game.new_game_buttons()[1])
-        self.assertEqual(game.state, "prologue")
+        self.assertEqual(game.player_screens.active, "name")
+        self.assertEqual(self.path.read_bytes(), previous)
+        game.player_screens.name = "Teste"
+        game.player_screens.accept_name()
+        self.assertEqual(game.state, "campaign")
         self.assertEqual(SaveStore(self.path).load()["investigation"]["evidence"], {})
 
     def test_bad_file_is_not_modified_when_opening_menu(self):

@@ -3,6 +3,7 @@ from pathlib import Path
 import pygame
 
 from scripts.cenas import Game
+from scripts.ranking import DjangoRanking
 
 
 WINDOW_SIZE = (1120, 720)
@@ -16,7 +17,7 @@ def main() -> None:
     clock = pygame.time.Clock()
 
     root = Path(__file__).parent
-    game = Game(screen, root, root / "saves" / "progresso.json")
+    game = Game(screen, root, root / "saves" / "progresso.json", ranking_store=DjangoRanking())
 
     while game.running:
         dt = clock.tick(FPS) / 1000

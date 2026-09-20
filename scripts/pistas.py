@@ -178,3 +178,8 @@ EVIDENCES: dict[str, Evidence] = {
 
 PHASE1_REQUIRED = {"celine_bracelet", "broken_phone", "coded_invitation"}
 FINAL_REQUIRED = {"locked_exit", "lorelai_note", "hall_pattern"}
+
+from scripts.roteiro_expandido import EVIDENCE_DATA
+
+for _key, (_name, _description) in EVIDENCE_DATA.items():
+    EVIDENCES[_key] = Evidence(_key, _name, _description, "registro", "campanha expandida", 10)

@@ -25,7 +25,7 @@ class GameFlowTests(unittest.TestCase):
         pygame.quit()
 
     def setUp(self):
-        self.game.start_game()
+        self.game.start_game(expanded=False)
 
     def click(self, button):
         self.game.handle_events([pygame.event.Event(
@@ -111,8 +111,11 @@ class GameFlowTests(unittest.TestCase):
         for _ in EPILOGUE_LINES:
             self.click(game.dialogue_continue_button())
         self.click(game.epilogue_buttons()[0])
-        self.click(game.menu_buttons()[0])
-        self.assertEqual(game.state, "prologue")
+        self.click(next(button for button in game.menu_buttons() if button.value == "start"))
+        self.assertEqual(game.player_screens.active, "name")
+        game.player_screens.name = "Teste"
+        game.player_screens.accept_name()
+        self.assertEqual(game.state, "campaign")
         self.assertEqual(game.investigation.score, 0)
         self.assertEqual(game.interrogation_round, 0)
         self.assertEqual(game.final_round, 0)
@@ -162,7 +165,7 @@ class GameFlowTests(unittest.TestCase):
             self.click(game.clue_buttons()[-1])
         self.assertEqual(game.clue_page, last_page)
         self.assertFalse(game.clue_buttons()[-1].enabled)
-        self.assertIn("hall_pattern", [e.id for e in game.investigation.discovered()[last_page * 4:]])
+        self.assertEqual(list(EVIDENCES)[last_page * 4:], [e.id for e in game.investigation.discovered()[last_page * 4:]])
         game.draw()
         self.game.handle_events([pygame.event.Event(pygame.MOUSEWHEEL, y=1)])
         self.assertEqual(game.clue_page, last_page - 1)

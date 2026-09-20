@@ -1,15 +1,19 @@
 from __future__ import annotations
 
 from dataclasses import asdict
+from copy import deepcopy
 import json
 import os
 from pathlib import Path
+from uuid import UUID, uuid5, NAMESPACE_URL
 
 from scripts.dialogos import FINAL_ROUNDS, INTERROGATION_ROUNDS, PUZZLE_ROUNDS, PROLOGUE_LINES, PROFILE_EVIDENCES, PROLOGUE_OUTRO, EPILOGUE_LINES
 from scripts.pistas import EVIDENCES
+from scripts.campanha import new_campaign, validate_campaign
 
 
 STAGES = {
+    "campaign": "Roteiro expandido / seis fases",
     "prologue": "Prologo", "phase1": "O escritorio de Celine",
     "interrogation": "Interrogatorio", "puzzle": "O convite cifrado",
     "profile": "Reconstrucao", "finale": "O salao dos Masters", "epilogue": "Resultado do caso",
@@ -20,6 +24,8 @@ PROGRESS_FIELDS = (
     "interrogation_insight", "profile_step", "evidence_selection", "final_mode",
     "final_round", "final_round_feedback", "message", "proof_choice", "proof_selection", "proof_page",
     "prologue_outro_index", "epilogue_index", "puzzle_input",
+    "campaign_data",
+    "player_name", "run_id", "ranking_eligible", "result_saved",
 )
 
 
@@ -27,14 +33,13 @@ def snapshot(game) -> dict:
     investigation = asdict(game.investigation)
     investigation["used_abilities"] = sorted(game.investigation.used_abilities)
     # Copy the selection lists: later clicks must not change the last saved snapshot.
-    progress = {key: list(value) if isinstance(value := getattr(game, key), list) else value
-                for key in PROGRESS_FIELDS}
-    return {"version": 3, "progress": progress, "investigation": investigation,
+    progress = {key: deepcopy(getattr(game, key)) for key in PROGRESS_FIELDS}
+    return {"version": 5, "progress": progress, "investigation": investigation,
             "position": list(game.player.rect.topleft), "facing_left": game.player.facing_left}
 
 
 def validate(data: object) -> dict:
-    if not isinstance(data, dict) or type(data.get("version")) is not int or data["version"] not in (1, 2, 3):
+    if not isinstance(data, dict) or type(data.get("version")) is not int or data["version"] not in (1, 2, 3, 4, 5):
         raise ValueError("Versao de salvamento nao suportada")
     if data["version"] == 1 and isinstance(data.get("progress"), dict):
         data = {**data, "version": 2, "progress": {**data["progress"],
@@ -47,11 +52,26 @@ def validate(data: object) -> dict:
         elif type(progress.get("dialogue_index")) is int and progress.get("state") == "prologue":
             progress["dialogue_index"] += 2
         data = {**data, "version": 3, "progress": progress}
+    if data["version"] == 3 and isinstance(data.get("progress"), dict):
+        data = {**data, "version": 4, "progress": {**data["progress"], "campaign_data": new_campaign()}}
+    if data["version"] == 4 and isinstance(data.get("progress"), dict):
+        # Deterministic identity keeps retries of migrated results idempotent.
+        identity = str(uuid5(NAMESPACE_URL, json.dumps(data, sort_keys=True)))
+        data = {**data, "version": 5, "progress": {**data["progress"], "player_name": "",
+                "run_id": identity, "ranking_eligible": False, "result_saved": False}}
     p, inv = data.get("progress"), data.get("investigation")
     if not isinstance(p, dict) or not isinstance(inv, dict) or set(p) != set(PROGRESS_FIELDS):
         raise ValueError("Progresso incompleto")
     if not isinstance(p["state"], str) or p["state"] not in STAGES:
         raise ValueError("Fase desconhecida")
+    validate_campaign(p["campaign_data"])
+    from scripts.ranking import normalize_name
+    if not isinstance(p["player_name"], str) or (p["player_name"] and normalize_name(p["player_name"]) != p["player_name"]):
+        raise ValueError("Nome de jogador invalido")
+    if not isinstance(p["run_id"], str) or str(UUID(p["run_id"])) != p["run_id"]:
+        raise ValueError("Identificador de partida invalido")
+    if type(p["ranking_eligible"]) is not bool or type(p["result_saved"]) is not bool:
+        raise ValueError("Registro de ranking invalido")
     if type(p["prologue_outro_index"]) is not int or not -1 <= p["prologue_outro_index"] <= len(PROLOGUE_OUTRO):
         raise ValueError("Abertura invalida")
     if p["state"] == "prologue" and p["prologue_outro_index"] == len(PROLOGUE_OUTRO):
@@ -91,6 +111,8 @@ def validate(data: object) -> dict:
             raise ValueError("Pontuacao invalida")
     if not isinstance(inv["evidence"], dict) or any(key not in EVIDENCES or type(value) is not bool for key, value in inv["evidence"].items()):
         raise ValueError("Evidencia invalida")
+    if p["state"] == "campaign" and any(key not in inv["evidence"] for key in p["campaign_data"]["proofs"]):
+        raise ValueError("Prova da campanha nao coletada")
     if type(p["proof_choice"]) is not int or not -1 <= p["proof_choice"] < 3:
         raise ValueError("Hipotese invalida")
     if type(p["proof_page"]) is not int or not 0 <= p["proof_page"] <= max(0, (len(inv["evidence"]) - 1) // 6):
