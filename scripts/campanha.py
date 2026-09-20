@@ -8,6 +8,7 @@ import pygame
 
 from scripts.interfaces import Button, TEXT, MUTED, ACCENT_2, GOOD, BAD, draw_band, draw_text, wrap_text
 from scripts.investigacao import InvestigationState
+from scripts.instrucoes import PUZZLE_INSTRUCTIONS
 from scripts.campanha_visual import CampaignVisual, COMPANIONS, CONVERSATIONS
 from scripts.roteiro_expandido import (PROLOGUE, EPILOGUE, CHAPTERS, ITEMS, OBJECTS,
                                       PUZZLES, ROOMS, OBJECTIVES, GRID_ROWS, EVIDENCE_DATA, HOTSPOT_POSITIONS,
@@ -668,7 +669,8 @@ class ExpandedCampaign:
                             g.screen.blit(pygame.transform.smoothscale(portrait, (32, 46)), (415, 270 + i * 56))
                 status = g.message
                 if content["kind"] == "proof" and d["choice"]:
-                    status = status or f"Provas anexadas: {len(d['proofs'])} / {len(content['proofs'])}"
+                    status = status or f"Provas anexadas: {len(d['proofs'])} / {len(content['proofs'])}. Marque as provas e clique em Confirmar."
+                status = status or PUZZLE_INSTRUCTIONS[content["kind"]]
                 draw_text(g.screen, status, g.fonts.small, MUTED, pygame.Rect(50, 590, 1020, 34))
             elif view == "report":
                 rating = "Conclusao sustentada"

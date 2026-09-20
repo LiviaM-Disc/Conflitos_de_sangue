@@ -44,6 +44,7 @@ from scripts.salvamento import SaveStore, STAGES, PROGRESS_FIELDS, snapshot
 from scripts.campanha import ExpandedCampaign, new_campaign
 from scripts.escritorio_escape import OfficeEscape
 from scripts.jogadores import PlayerScreens
+from scripts.instrucoes import Instructions
 
 
 class Game:
@@ -69,6 +70,7 @@ class Game:
         self.ranking_eligible = True
         self.result_saved = False
         self.player_screens = PlayerScreens(self, ranking_store)
+        self.instructions = Instructions(self)
         self.player_poses = {
             pose: load_portrait(self.assets_dir / "personagens", "cassie", (92, 142), pose)
             for pose in ("idle", "walk", "action")
@@ -171,6 +173,12 @@ class Game:
 
     def dispatch_events(self, events: list[pygame.event.Event]) -> None:
         for event in events:
+            if self.instructions.active:
+                self.instructions.handle_event(event)
+                continue
+            if self.instructions.available() and ((event.type == pygame.KEYDOWN and event.key == pygame.K_F1) or self.instructions.button().hit(event)):
+                self.instructions.open()
+                continue
             if self.player_screens.active:
                 self.player_screens.handle_event(event)
                 continue
@@ -532,7 +540,7 @@ class Game:
         if self.save_elapsed >= 5 and self.state != "menu":
             self.save_progress()
             self.save_elapsed = 0.0
-        if self.paused or self.show_clues or self.player_screens.active:
+        if self.paused or self.show_clues or self.player_screens.active or self.instructions.active:
             return
         if self.message_timer > 0:
             self.message_timer -= dt
@@ -546,6 +554,9 @@ class Game:
             self.campaign.update(dt)
 
     def draw(self) -> None:
+        if self.instructions.active:
+            self.instructions.draw()
+            return
         if self.player_screens.active:
             self.player_screens.draw()
             return
@@ -580,6 +591,8 @@ class Game:
         if self.save_notice:
             draw_band(self.screen, pygame.Rect(0, 76, 1120, 40))
             draw_text(self.screen, self.save_notice, self.fonts.small, TEXT, pygame.Rect(28, 84, 1064, 28))
+        if self.instructions.available():
+            self.instructions.button().draw(self.screen, self.fonts, pygame.mouse.get_pos())
 
     def draw_menu(self) -> None:
         self.screen.blit(self.room_image, (0, 0))
@@ -919,6 +932,7 @@ class Game:
         self.message_timer = seconds
 
     def start_game(self, expanded: bool = True, player_name: str = "") -> None:
+        self.instructions.active = False
         self.player_screens.active = ""
         self.player_name = player_name
         self.run_id = str(uuid4())
@@ -1006,6 +1020,7 @@ class Game:
     def continue_game(self) -> None:
         if self.saved_game is None:
             return
+        self.instructions.active = False
         saved = self.saved_game
         for key in PROGRESS_FIELDS:
             value = saved["progress"][key]

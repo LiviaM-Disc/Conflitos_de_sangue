@@ -50,6 +50,7 @@ class PlayerScreens:
             self.g.player_name = name
         else:
             self.g.start_game(player_name=name)
+            self.g.instructions.open(contextual=False)
         if self.g.campaign_data["view"] == "report":
             self.finish()
         if self.g.save_store:
