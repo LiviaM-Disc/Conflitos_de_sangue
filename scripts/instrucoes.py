@@ -82,7 +82,9 @@ class Instructions:
         if event.type == pygame.KEYDOWN:
             if event.key in (pygame.K_ESCAPE, pygame.K_F1):
                 action = "close"
-            elif event.key in (pygame.K_RIGHT, pygame.K_RETURN, pygame.K_SPACE):
+            elif event.key == pygame.K_RIGHT:
+                action = "next"
+            elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
                 action = "next" if self.page < len(PAGES)-1 else "close"
             elif event.key == pygame.K_LEFT:
                 action = "previous"

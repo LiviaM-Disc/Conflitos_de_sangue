@@ -16,6 +16,8 @@ class GameResult(models.Model):
     score = models.PositiveIntegerField()
     mistakes = models.PositiveIntegerField()
     ranked = models.BooleanField(default=True)
+    completed = models.BooleanField(default=True)
+    phase = models.PositiveSmallIntegerField(default=6)
     finished_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

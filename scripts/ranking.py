@@ -39,7 +39,7 @@ class DjangoRanking:
         player, _ = Player.objects.get_or_create(identity=name.casefold(), defaults={"nickname": name})
         return player
 
-    def record(self, run_id, name, score, mistakes, ranked=True):
+    def record(self, run_id, name, score, mistakes, ranked=True, completed=True, phase=6):
         self.setup()
         from django.db import transaction
         from ranking_app.models import GameResult
@@ -48,11 +48,14 @@ class DjangoRanking:
             raise ValueError("Resultado invalido.")
         if type(ranked) is not bool:
             raise ValueError("Modalidade invalida.")
+        if type(completed) is not bool or type(phase) is not int or not 0 <= phase <= 6:
+            raise ValueError("Etapa do resultado invalida.")
         with transaction.atomic():
             player = self.player(name)
             result, created = GameResult.objects.get_or_create(id=run_id, defaults={
-                "player": player, "score": score, "mistakes": mistakes, "ranked": ranked})
-            if not created and (result.player_id, result.score, result.mistakes, result.ranked) != (player.pk, score, mistakes, ranked):
+                "player": player, "score": score, "mistakes": mistakes, "ranked": ranked,
+                "completed": completed, "phase": phase})
+            if not created and (result.player_id, result.score, result.mistakes, result.ranked, result.completed, result.phase) != (player.pk, score, mistakes, ranked, completed, phase):
                 raise ValueError("Esta partida ja foi registrada com outro resultado.")
         return result
 
@@ -68,5 +71,6 @@ class DjangoRanking:
             seen.add(result.player_id)
             rows.append({"position": len(rows) + 1, "name": result.player.nickname,
                          "score": result.score, "mistakes": result.mistakes,
+                         "completed": result.completed, "phase": result.phase,
                          "current": result.player.identity == name.casefold()})
         return rows

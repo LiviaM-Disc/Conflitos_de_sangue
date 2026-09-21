@@ -16,7 +16,7 @@ from scripts.roteiro_expandido import (PROLOGUE, EPILOGUE, CHAPTERS, ITEMS, OBJE
 
 
 EXPOSURE_LIMIT = 5
-VIEWS = {"dialogue", "explore", "note", "inventory", "map", "puzzle", "help", "report"}
+VIEWS = {"dialogue", "explore", "note", "inventory", "map", "puzzle", "help", "report", "ended"}
 
 
 def new_campaign() -> dict:
@@ -181,15 +181,19 @@ class ExpandedCampaign:
         self.note(title, text, "puzzle")
 
     def advance(self, phase, room):
+        previous_phase = self.data["chapter"]
         self.data.update(chapter=phase, room=room, map_phase=min(phase, 6), page=0)
         if room not in self.data["visited"]:
             self.data["visited"].append(room)
         self.game.player.rect.topleft = (1010, 510)
         self.checkpoint()
+        title = "Prologo concluido" if previous_phase == 0 else f"Fase {previous_phase} concluida!"
+        score = f"Pontuacao atual: {self.game.investigation.score} pontos."
         if phase == 7:
             self.data.update(view="dialogue", dialogue="epilogue", line=0)
+            self.note(title, "Voce concluiu as seis fases desta investigacao.\n\n" + score + "\n\nContinue para acompanhar o epilogo.", back="dialogue")
         else:
-            self.note(CHAPTERS[phase], OBJECTIVES[phase])
+            self.note(title, score + f"\n\nProxima etapa: Fase {phase} - " + CHAPTERS[phase] + ".\n\n" + OBJECTIVES[phase])
 
     def available_rooms(self):
         phase = self.data["map_phase"]
@@ -428,7 +432,7 @@ class ExpandedCampaign:
                         self.button((390, 630, 145, 48), "Dossie", "dossier"),
                         self.button((550, 630, 155, 48), "Ver resposta" if self.hint_level() >= 2 else "Dica", "hint"),
                         self.button((715, 630, 165, 48), "Confirmar", "submit")]
-        elif view == "report":
+        elif view in {"report", "ended"}:
             buttons = [self.button((510, 630, 250, 48), "Ranking", "ranking"),
                        self.button((790, 630, 270, 48), "Voltar ao menu", "menu")]
         return buttons
@@ -672,6 +676,13 @@ class ExpandedCampaign:
                     status = status or f"Provas anexadas: {len(d['proofs'])} / {len(content['proofs'])}. Marque as provas e clique em Confirmar."
                 status = status or PUZZLE_INSTRUCTIONS[content["kind"]]
                 draw_text(g.screen, status, g.fonts.small, MUTED, pygame.Rect(50, 590, 1020, 34))
+            elif view == "ended":
+                draw_text(g.screen, "Investigacao encerrada pelo jogador", g.fonts.h1, TEXT, pygame.Rect(60, 160, 1000, 70))
+                stage = "Prologo" if d["chapter"] == 0 else "Epilogo" if d["chapter"] == 7 else f"Fase {d['chapter']} de 6"
+                draw_text(g.screen, f"{g.player_name} | {stage}", g.fonts.h2, MUTED, pygame.Rect(60, 255, 1000, 50))
+                draw_text(g.screen, f"Pontos: {g.investigation.score} | Erros: {g.investigation.mistakes}", g.fonts.body, TEXT, pygame.Rect(60, 335, 1000, 45))
+                draw_text(g.screen, "Esta tentativa foi encerrada. As etapas restantes nao foram concluidas. Uma nova investigacao comeca uma nova tentativa.", g.fonts.body, TEXT, pygame.Rect(60, 420, 1000, 100))
+                draw_text(g.screen, g.player_screens.result_notice, g.fonts.small, MUTED, pygame.Rect(60, 566, 1000, 52))
             elif view == "report":
                 rating = "Conclusao sustentada"
                 if d["best_blocked"]:

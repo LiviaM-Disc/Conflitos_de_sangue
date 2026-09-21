@@ -190,7 +190,7 @@ class OfficeEscapeTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             validate_escape(invalid)
 
-    def test_menu_autosave_pause_and_return_preserve_campaign(self):
+    def test_retired_prototype_is_hidden_and_preserves_campaign(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "progresso.json"
             self.game.save_store = SaveStore(path)
@@ -199,8 +199,8 @@ class OfficeEscapeTests(unittest.TestCase):
             original = path.read_bytes()
             self.game.reset_to_menu()
             self.e.path = path.with_name("escritorio_escape.json")
-            button = next(b for b in self.game.menu_buttons() if b.value == "escape")
-            self.game.handle_events([pygame.event.Event(pygame.MOUSEBUTTONDOWN, button=1, pos=button.rect.center)])
+            self.assertNotIn("escape", [b.value for b in self.game.menu_buttons()])
+            self.e.start()
             self.assertEqual(self.game.state, "escape_room")
             self.click(("hotspot", "desk"))
             self.click(("take", "note"))

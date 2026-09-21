@@ -242,6 +242,8 @@ class Game:
                         self.reset_to_menu()
                     elif button.value == "save":
                         self.save_progress()
+                    elif button.value == "end_run":
+                        self.player_screens.ask_end()
                     elif button.value == "quit_without_save":
                         self.running = False
                     return
@@ -267,8 +269,6 @@ class Game:
                 if button.hit(event):
                     if button.value == "continue":
                         self.continue_game()
-                    elif button.value == "escape":
-                        self.office_escape.start()
                     elif button.value == "ranking":
                         self.player_screens.show_ranking()
                     elif self.saved_game:
@@ -896,7 +896,7 @@ class Game:
         overlay = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
         overlay.fill((0, 0, 0, 180))
         self.screen.blit(overlay, (0, 0))
-        rect = pygame.Rect(390, 180, 340, 380)
+        rect = pygame.Rect(350, 180, 420, 465)
         draw_panel(self.screen, rect, PANEL)
         title = self.fonts.h1.render("Pausa", True, TEXT)
         self.screen.blit(title, title.get_rect(center=(rect.centerx, rect.y + 46)))
@@ -980,11 +980,9 @@ class Game:
         if self.saved_game:
             return [Button(pygame.Rect(370, 436, 380, 50), "Continuar investigacao", "continue", selected=True),
                     Button(pygame.Rect(370, 505, 380, 50), "Nova investigacao", "new"),
-                    Button(pygame.Rect(370, 573, 185, 50), "Ranking", "ranking"),
-                    Button(pygame.Rect(565, 573, 185, 50), "Teste escritorio", "escape")]
+                    Button(pygame.Rect(370, 573, 380, 50), "Ranking", "ranking")]
         return [Button(pygame.Rect(370, 470, 380, 54), "Iniciar investigacao", "start", selected=True),
-                Button(pygame.Rect(370, 548, 185, 54), "Ranking", "ranking"),
-                Button(pygame.Rect(565, 548, 185, 54), "Teste escritorio", "escape")]
+                Button(pygame.Rect(370, 548, 380, 54), "Ranking", "ranking")]
 
     def new_game_buttons(self) -> list[Button]:
         return [Button(pygame.Rect(310, 412, 220, 52), "Cancelar", "cancel"),
@@ -1121,5 +1119,7 @@ class Game:
             Button(pygame.Rect(430, 410, 260, 52), "Salvar e voltar ao menu", "menu"),
         ]
         if self.save_notice:
-            buttons.append(Button(pygame.Rect(430, 480, 260, 52), "Sair sem salvar", "quit_without_save"))
+            buttons.append(Button(pygame.Rect(430, 570, 260, 52), "Sair sem salvar", "quit_without_save"))
+        if self.state == "campaign" and self.campaign_data["view"] not in {"report", "ended"}:
+            buttons.append(Button(pygame.Rect(380, 480, 360, 65), "Encerrar investigacao e registrar pontos", "end_run"))
         return buttons

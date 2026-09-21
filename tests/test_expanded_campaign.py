@@ -57,6 +57,30 @@ class ExpandedCampaignTests(unittest.TestCase):
             self.assertLessEqual(len(lines) * font.get_height(), 37, key)
             self.assertTrue(all(font.size(line)[0] <= 112 for line in lines), key)
 
+    def test_phase_completion_notice_survives_save_and_keeps_score(self):
+        destinations = ["reception", "interview", "lab", "garden", "hidden", "final_chamber", "final_chamber"]
+        with tempfile.TemporaryDirectory() as folder:
+            store = SaveStore(Path(folder) / "transition.json")
+            for phase, room in enumerate(destinations, 1):
+                self.c.data["chapter"] = phase - 1
+                self.game.investigation.score = 135
+                self.c.advance(phase, room)
+                self.assertEqual(self.c.data["view"], "note")
+                expected = "Prologo concluido" if phase == 1 else f"Fase {phase-1} concluida!"
+                self.assertEqual(self.c.data["note_title"], expected)
+                self.assertIn("135 pontos", self.c.data["note_text"])
+                self.assertEqual(self.game.investigation.score, 135)
+                self.game.draw()
+                store.write(snapshot(self.game))
+                self.game.saved_game = store.load()
+                self.game.continue_game()
+                self.assertEqual(self.c.data["note_title"], expected)
+                self.click("note_back")
+                self.assertEqual(self.c.data["view"], "dialogue" if phase == 7 else "explore")
+                if phase == 7:
+                    self.assertEqual(self.c.data["dialogue"], "epilogue")
+                    self.assertEqual(self.c.data["line"], 0)
+
     def test_extended_prologue_renders_and_saves_every_line(self):
         with tempfile.TemporaryDirectory() as folder:
             store = SaveStore(Path(folder) / "prologue.json")

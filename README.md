@@ -33,8 +33,9 @@ edicao manual de arquivos. Nao e um servico de competicao online.
 
 ### Investigacao interativa: escritorio
 
-O menu inclui `Teste anterior do escritorio`, um trecho independente preservado
-como opcao secundaria. A campanha completa e a opcao principal. Clique nos objetos do cenario
+O teste do escritorio foi retirado do menu. Seu codigo e salvamento separado
+permanecem apenas como referencia historica. A campanha completa e a opcao jogavel.
+No antigo prototipo, era possivel clicar nos objetos do cenario
 para examina-los. O inventario permanece visivel; selecione a chave ou o
 cracha e clique no destino. O bilhete e a fotografia podem ser relidos ali.
 
@@ -48,8 +49,8 @@ Ha dicas graduais, pontuacao e interacoes visuais. Tudo funciona com mouse;
 ESC pausa. As salas reutilizam as artes existentes.
 
 O progresso deste teste fica em `saves/escritorio_escape.json`, separado de
-`saves/progresso.json`. O botao do escritorio retoma o teste salvo; ao concluir,
-`Jogar novamente` reinicia apenas esse trecho. A campanha anterior nao e alterada.
+`saves/progresso.json`. Esse arquivo antigo foi preservado, mas nao ha mais
+botao para abrir o teste no menu. A campanha principal nao foi alterada.
 O nome antigo do arquivo foi mantido para compatibilidade. Saves do prototipo
 de fuga preservam os objetos, mas retomam a investigacao sem inventar as novas
 descobertas; o teclado e a conclusao de fuga sao removidos na migracao.
@@ -139,6 +140,13 @@ python -m venv .venv
 ```
 
 ## Controles
+
+O botao **Como jogar**, no menu e na campanha, abre um guia sem spoilers.
+F1 tambem abre a ajuda; ESC fecha sem alterar a resposta ou o progresso.
+Novos jogadores veem o guia apos informar o apelido e podem fecha-lo a
+qualquer momento para iniciar a abertura. Partidas ja salvas tambem tem acesso
+ao guia. Enigmas exibem lembretes de selecao e confirmacao quando nao ha
+uma mensagem de resultado. Nenhuma regra, resposta ou pontuacao foi alterada.
 
 - WASD ou setas: movimentar Cassie na exploracao
 - E: investigar objeto proximo

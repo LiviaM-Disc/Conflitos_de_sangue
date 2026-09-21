@@ -12,8 +12,8 @@ controlador, mantendo os caminhos antigos para retomar partidas antigas.
 
 `scripts/campanha_visual.py` concentra conexoes entre salas, objetos desenhados
 com Pygame, conversas contextuais e a barra de inventario. Todas as fases usam
-essa exploracao por cliques. O teste independente do escritorio permanece
-como opcao secundaria, com seu proprio salvamento.
+essa exploracao por cliques. O teste independente do escritorio foi retirado
+do menu; seu codigo historico e salvamento separado foram preservados.
 
 ## Percurso implementado
 
