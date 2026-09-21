@@ -10,6 +10,7 @@ class Command(BaseCommand):
         store.initialized = True
         rows = store.standings()
         if not rows:
-            self.stdout.write("Nenhuma partida concluida no ranking.")
+            self.stdout.write("Nenhuma partida registrada no ranking.")
         for row in rows:
-            self.stdout.write(f"{row['position']}. {row['name']} - {row['score']} pontos - {row['mistakes']} erros")
+            status = "concluida" if row["completed"] else f"encerrada na fase {row['phase']}"
+            self.stdout.write(f"{row['position']}. {row['name']} - {row['score']} pontos - {row['mistakes']} erros - {status}")

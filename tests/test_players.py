@@ -4,7 +4,7 @@ os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 import pygame
 from scripts.cenas import Game
 from scripts.salvamento import snapshot, validate, SaveStore
@@ -82,6 +82,58 @@ class PlayerFlowTests(unittest.TestCase):
         self.g.player_screens.accept_name()
         self.assertEqual(self.g.state, "menu")
         self.assertEqual(self.path.read_bytes(), previous)
+
+    def test_early_end_cancel_confirm_and_resume_frozen_result(self):
+        self.g.start_game(player_name="Ana")
+        self.g.campaign_data.update(chapter=2, room="hall", view="explore")
+        self.g.investigation.score = 90
+        self.g.paused = True
+        before = snapshot(self.g)
+        button = next(b for b in self.g.pause_buttons() if b.value == "end_run")
+        self.g.handle_events([pygame.event.Event(pygame.MOUSEBUTTONDOWN, button=1, pos=button.rect.center)])
+        self.assertEqual(self.g.player_screens.active, "end_confirm")
+        self.g.draw()
+        self.g.handle_events([pygame.event.Event(pygame.KEYDOWN, key=pygame.K_ESCAPE)])
+        self.assertEqual(snapshot(self.g), before)
+        self.store.record.assert_not_called()
+        self.g.player_screens.ask_end()
+        confirm = next(b for b in self.g.player_screens.buttons() if b.value == "end")
+        self.g.handle_events([pygame.event.Event(pygame.MOUSEBUTTONDOWN, button=1, pos=confirm.rect.center)])
+        self.store.record.assert_called_once_with(self.g.run_id, "Ana", 90, 0, True, completed=False, phase=2)
+        self.assertEqual(self.g.campaign_data["chapter"], 2)
+        self.assertEqual(self.g.campaign_data["flags"], [])
+        self.assertEqual(self.g.player_screens.active, "ranking")
+        resumed = Game(self.screen, self.root, self.path, ranking_store=self.store)
+        self.assertEqual(resumed.menu_buttons()[0].text, "Ver resultado")
+        resumed.continue_game()
+        self.assertEqual(resumed.campaign_data["view"], "ended")
+        resumed.draw()
+        self.assertNotIn("end_run", [b.value for b in resumed.pause_buttons()])
+        resumed.player_screens.show_ranking()
+        self.assertEqual(self.store.record.call_count, 1)
+
+    def test_early_end_local_failure_keeps_attempt_playable(self):
+        self.g.start_game(player_name="Ana")
+        self.g.campaign_data.update(chapter=1, room="office", view="explore")
+        before = snapshot(self.g)
+        self.g.player_screens.ask_end()
+        with patch.object(self.g.save_store, "write", side_effect=OSError("disk full")):
+            self.g.player_screens.confirm_end()
+        self.assertEqual(snapshot(self.g), before)
+        self.assertEqual(self.g.player_screens.active, "end_confirm")
+        self.store.record.assert_not_called()
+
+    def test_early_end_database_failure_can_retry_without_new_result(self):
+        self.g.start_game(player_name="Ana")
+        self.g.player_screens.ask_end()
+        self.store.record.side_effect = OSError("locked")
+        self.g.player_screens.confirm_end()
+        self.assertFalse(self.g.result_saved)
+        self.assertEqual(SaveStore(self.path).load()["progress"]["campaign_data"]["view"], "ended")
+        self.store.record.side_effect = None
+        self.g.player_screens.show_ranking()
+        self.assertTrue(self.g.result_saved)
+        self.assertEqual(self.store.record.call_count, 2)
 
     def test_pending_result_cannot_be_overwritten_by_new_game(self):
         self.g.start_game(player_name="Ana")

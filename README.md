@@ -10,13 +10,21 @@ No menu, Iniciar/Nova investigacao pede um apelido de 2 a 24 caracteres.
 O mesmo apelido (ignorando maiusculas) identifica o mesmo jogador; nao ha
 login nem senha. Use apelidos diferentes para pessoas diferentes.
 
-O Django armazena jogadores e todas as partidas concluidas em
+O Django armazena jogadores e todas as partidas concluidas ou encerradas em
 `saves/ranking.sqlite3`. O Pygame usa o ORM diretamente, sem servidor HTTP
 ou internet. As migrations sao aplicadas automaticamente no primeiro acesso.
 O ranking mostra a melhor partida por jogador. Empates: menos erros, depois
 o resultado registrado primeiro. Ao terminar o epilogo, o resultado e
 registrado; reabrir o relatorio nao duplica a partida. Falhas de banco permitem
 tentar novamente em Ranking, sem fingir que o resultado foi salvo.
+
+Tambem e possivel entrar no ranking antes do fim: ESC, **Encerrar investigacao
+e registrar pontos**, e confirmar. Isso fecha a tentativa com a pontuacao
+atual e abre o ranking, que indica a fase em que ela foi encerrada. Nao e
+possivel continuar essa tentativa depois; o menu passa a oferecer Ver resultado.
+Para apenas fazer uma pausa e jogar depois, use **Salvar e voltar ao menu**.
+Encerrar nao concede pontos extras nem marca fases restantes como concluidas.
+Se o banco falhar, o resultado fica pendente e pode ser reenviado sem duplicar.
 
 Cada evidencia nova vale 10 pontos; enigmas e deducoes corretos valem 20,
 alem das novas evidencias concedidas. Cada erro penalizado custa 5 pontos,

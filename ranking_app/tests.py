@@ -46,3 +46,19 @@ class RankingTests(TestCase):
         for score, mistakes in ((-1, 0), (True, 0), (10, -1), (1000001, 0)):
             with self.assertRaises(ValueError):
                 self.store.record(uuid4(), "Ana", score, mistakes)
+
+    def test_early_result_enters_ranking_without_claiming_completion(self):
+        run = uuid4()
+        self.store.record(run, "Ana", 90, 2, completed=False, phase=2)
+        self.store.record(run, "Ana", 90, 2, completed=False, phase=2)
+        self.store.record(uuid4(), "Bia", 80, 0)
+        rows = self.store.standings("Ana")
+        self.assertEqual(rows[0]["name"], "Ana")
+        self.assertFalse(rows[0]["completed"])
+        self.assertEqual(rows[0]["phase"], 2)
+        self.assertEqual(GameResult.objects.filter(player__nickname="Ana").count(), 1)
+        with self.assertRaises(ValueError):
+            self.store.record(run, "Ana", 90, 2, completed=True, phase=6)
+        for phase in (-1, 7, True):
+            with self.assertRaises(ValueError):
+                self.store.record(uuid4(), "Ana", 90, 2, completed=False, phase=phase)

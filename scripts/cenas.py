@@ -903,7 +903,7 @@ class Game:
         for button in self.pause_buttons():
             button.draw(self.screen, self.fonts, pygame.mouse.get_pos())
         if self.save_status and not self.save_notice:
-            draw_text(self.screen, self.save_status, self.fonts.small, GOOD, pygame.Rect(420, 492, 280, 34), align="center")
+            draw_text(self.screen, self.save_status, self.fonts.small, GOOD, pygame.Rect(420, 587, 280, 34), align="center")
 
     def try_interact(self) -> None:
         item = self.nearest_interactable()
@@ -978,7 +978,8 @@ class Game:
 
     def menu_buttons(self) -> list[Button]:
         if self.saved_game:
-            return [Button(pygame.Rect(370, 436, 380, 50), "Continuar investigacao", "continue", selected=True),
+            ended = self.saved_game["progress"]["state"] == "campaign" and self.saved_game["progress"]["campaign_data"]["view"] in {"ended", "report"}
+            return [Button(pygame.Rect(370, 436, 380, 50), "Ver resultado" if ended else "Continuar investigacao", "continue", selected=True),
                     Button(pygame.Rect(370, 505, 380, 50), "Nova investigacao", "new"),
                     Button(pygame.Rect(370, 573, 380, 50), "Ranking", "ranking")]
         return [Button(pygame.Rect(370, 470, 380, 54), "Iniciar investigacao", "start", selected=True),

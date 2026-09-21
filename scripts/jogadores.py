@@ -125,7 +125,7 @@ class PlayerScreens:
 
     def buttons(self):
         if self.active == "end_confirm":
-            return [Button(pygame.Rect(170, 510, 300, 52), "Continuar investigacao", "back"),
+            return [Button(pygame.Rect(170, 510, 300, 52), "Cancelar", "back"),
                     Button(pygame.Rect(560, 510, 390, 52), "Encerrar e registrar pontos", "end")]
         if self.active == "name":
             return [Button(pygame.Rect(260, 510, 220, 50), "Cancelar", "back"),
@@ -194,15 +194,15 @@ class PlayerScreens:
             draw_text(g.screen, self.notice, g.fonts.small, TEXT, pygame.Rect(260, 435, 600, 65))
         else:
             draw_text(g.screen, "Melhor partida por jogador | Desempate: menos erros, depois registro mais antigo", g.fonts.small, MUTED, pygame.Rect(60, 115, 1000, 30))
-            for x, label in ((60, "POSICAO"), (180, "JOGADOR"), (650, "PONTOS"), (780, "ERROS"), (900, "SITUACAO")):
+            for x, label in ((60, "POSICAO"), (180, "JOGADOR"), (710, "PONTOS"), (820, "ERROS"), (930, "SITUACAO")):
                 draw_text(g.screen, label, g.fonts.small, ACCENT_2, pygame.Rect(x, 177, 190, 26))
             for i, row in enumerate(self.rows[self.page * 7:self.page * 7 + 7]):
                 y = 215 + i * 44
                 color = GOOD if row["current"] else TEXT
-                for x, width, value in ((60, 90, row["position"]), (180, 450, row["name"]), (650, 125, row["score"]), (780, 115, row["mistakes"])):
+                for x, width, value in ((60, 90, row["position"]), (180, 490, row["name"]), (710, 105, row["score"]), (820, 100, row["mistakes"])):
                     draw_text(g.screen, str(value), g.fonts.body, color, pygame.Rect(x, y, width, 35))
                 status = "Concluida" if row.get("completed", True) else f"Encerrada F{row['phase']}" if row["phase"] else "No prologo"
-                draw_text(g.screen, status, g.fonts.small, color, pygame.Rect(900, y + 3, 180, 32))
+                draw_text(g.screen, status, g.fonts.small, color, pygame.Rect(930, y + 3, 165, 32))
             if not self.rows and not self.notice:
                 draw_text(g.screen, "Nenhuma partida registrada no ranking.", g.fonts.body, TEXT, pygame.Rect(60, 230, 1000, 45))
             current = next((r for r in self.rows if r["current"]), None)

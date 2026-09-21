@@ -33,7 +33,7 @@ PAGES = [
     ]),
     ("Dicas e progresso", [
         ("Ajuda sem desconto", "Dica na exploracao indica o proximo passo. Em um enigma, ha duas dicas e depois Ver resposta. Consultar essas dicas nao tira pontos nem responde automaticamente. As consultas aos personagens podem ter limite."),
-        ("Pontuacao e ranking", "Novas evidencias, enigmas e deducoes corretas rendem pontos. Erros penalizados custam 5 pontos, sem saldo negativo ou perda de itens. O ranking registra o resultado ao concluir o epilogo, pelo apelido do jogador."),
+        ("Pontuacao e ranking", "Acertos rendem pontos; erros penalizados custam 5, sem saldo negativo. O ranking registra o fim do epilogo ou a opcao Encerrar investigacao e registrar pontos na pausa. Encerrar impede continuar essa tentativa."),
         ("Pode parar e continuar depois", "ESC abre a pausa; nela, escolha Salvar e voltar ao menu. Continuar investigacao retoma o progresso salvo. O guia Como jogar pode ser reaberto a qualquer momento pelo botao ou por F1, sem mudar sua resposta."),
     ]),
 ]
