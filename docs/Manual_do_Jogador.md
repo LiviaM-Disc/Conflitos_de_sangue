@@ -18,7 +18,7 @@ Guia rápido para jogar e apresentar o projeto ao professor. O jogo é uma inves
 - Setas do inventário: mostram outros itens. A barra exibe seis de cada vez.
 - Combinar: selecione dois itens e pressione o botão. Exemplo: ímã e tira metálica.
 - Locais: abre o mapa para escolher um ambiente já disponível. Itens abre o inventário completo; Pistas abre o dossiê.
-- Dica: na exploração indica o próximo passo. Em um enigma, oferece duas dicas e depois Ver resposta. Nenhuma dica desconta pontos.
+- Dica: na exploração indica o próximo passo. Em um enigma, oferece dicas cada vez mais diretas, sem registrar a resposta por você. Nenhuma dica desconta pontos.
 - ESC: pausa. Na pausa, é possível salvar e voltar ao menu. Não é necessário encerrar toda a campanha de uma vez.
 
 ## Como responder aos desafios

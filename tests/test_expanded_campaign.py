@@ -328,6 +328,43 @@ class ExpandedCampaignTests(unittest.TestCase):
         self.inspect("lamp")
         self.assertEqual(self.c.data["puzzle"], "writing")
 
+    def test_current_objective_and_world_hint_focus_current_step(self):
+        for _ in OPENING:
+            self.click("dialogue_next")
+        self.assertEqual(self.c.current_objective(), "Investigue Bloco de Redding.")
+        self.click("world_hint")
+        self.assertEqual(self.c.data["note_title"], "O que fazer agora")
+        self.assertEqual(self.c.data["note_text"], "Clique em Bloco de Redding para examinar.")
+        self.dismiss()
+        target = next(button for button in self.c.buttons() if button.value == ("object", "redding_notes"))
+        self.assertTrue(self.c.focus_hint_matches(target))
+
+        self.c.data.update(chapter=1, room="office", view="explore", inventory=["carbon"],
+                           flags=["card_holder", "guest_book", "desk", "phone", "chair", "glass", "bin"],
+                           selected_items=[])
+        self.assertEqual(self.c.current_objective(), "Selecione Folha de carbono.")
+        self.assertEqual(self.c.object_hint("lamp"), "Selecione no inventario: Folha de carbono")
+        self.choose_from_bar("carbon")
+        self.assertEqual(self.c.object_hint("lamp"), "Clique para usar Folha de carbono em Luminaria e bloco.")
+
+    def test_floor_click_walks_player_instead_of_teleporting(self):
+        self.c.data.update(view="explore", chapter=1, room="office")
+        start = self.game.player.rect.topleft
+        destination = (360, 500)
+        self.game.handle_events([pygame.event.Event(pygame.MOUSEBUTTONDOWN, button=1, pos=destination)])
+
+        self.assertEqual(self.game.player.rect.topleft, start)
+        self.assertEqual(self.game.player.walk_target, destination)
+
+        self.game.update(0.2)
+        self.assertNotEqual(self.game.player.rect.topleft, start)
+        self.assertTrue(self.game.player.moving)
+
+        for _ in range(120):
+            self.game.update(0.05)
+        self.assertIsNone(self.game.player.walk_target)
+        self.assertEqual(self.game.player.rect.midbottom, destination)
+
     def test_complete_six_phases_with_inventory_and_backtracking(self):
         self.complete_office()
         self.inspect("witness")
@@ -434,7 +471,9 @@ class ExpandedCampaignTests(unittest.TestCase):
     def test_errors_do_not_add_cooldown(self):
         self.c.data.update(view="explore", chapter=3, room="lab")
         self.inspect("sequence")
-        self.click("submit")
+        submit = next(button for button in self.c.buttons() if button.value == "submit")
+        self.assertFalse(submit.enabled)
+        self.game.handle_events([pygame.event.Event(pygame.MOUSEBUTTONDOWN, button=1, pos=submit.rect.center)])
         self.assertEqual(self.game.investigation.mistakes, 0)
         for _ in range(3):
             self.c.data["input"] = "99"

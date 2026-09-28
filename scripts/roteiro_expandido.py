@@ -23,10 +23,10 @@ PROLOGUE = [
 ]
 # The previous dialogue remains available only for existing saves.
 BRIEFING = [
-    ("Antes de comecar", "Esta historia aborda desaparecimento, manipulacao psicologica e lembrancas dolorosas. Este jogo apresenta um capitulo de uma investigacao maior; nem todas as perguntas serao respondidas aqui."),
-    ("O desaparecimento de Celine", "Celine desapareceu. A equipe foi chamada para investigar os vestigios deixados em seu escritorio. Ainda nao ha elementos suficientes para afirmar como ou por que ela partiu. Cassie tambem busca respostas sobre os Masters, um grupo cujas intencoes permanecem incertas."),
-    ("A equipe", "Cinco perspectivas sobre o mesmo caso. Suas especialidades ajudam a interpretar os registros, mas nenhuma impressao substitui uma prova."),
-    ("A primeira tarefa", "Reconstruir os ultimos acontecimentos conhecidos e investigar o desaparecimento de Celine. Antes de visitar o escritorio, Cassie procura Daniel Redding para ouvi-lo sobre os Masters. As perguntas sobre Lorelai, ligadas ao passado de Cassie, ainda permanecem abertas."),
+    ("Aviso", "Esta investigacao aborda desaparecimento, manipulacao psicologica e lembrancas dolorosas. Nem todo misterio sera resolvido neste capitulo."),
+    ("O caso", "Celine desapareceu. Cassie precisa descobrir se ela saiu por vontade propria, se foi coagida, ou se alguem usou o caso para alcancar a equipe."),
+    ("A equipe", "Cinco investigadores observam o mesmo caso por angulos diferentes. Impressao ajuda; prova decide."),
+    ("Primeira acao", "Antes do escritorio de Celine, Cassie ouve Daniel Redding. Registre o aviso dele e examine a sala."),
 ]
 TEAM_PROFILES = [
     ("cassie", "Cassie", "Perfilacao", "Reconstroi comportamentos e motivacoes."),
@@ -270,6 +270,32 @@ OBJECTIVES = [
     "Verificar as gravacoes e reconstruir a cronologia sem inventar identidades.",
     "Validar fotografias, consultar os documentos e sustentar a deducao final.",
 ]
+
+PUZZLE_GOALS = {
+    "writing": "Entender se as marcas indicam plano, coacao ou ruido.",
+    "office_conclusion": "Separar a saida de Celine da chegada do envelope.",
+    "witness": "Testar a fala do depoente contra os registros.",
+    "camera": "Recuperar a janela em que o envelope apareceu.",
+    "sequence": "Descobrir o termo que mantem o padrao do envelope.",
+    "intruder": "Identificar o numero que foi inserido no padrao.",
+    "positional": "Abrir o compartimento sem ignorar a regra de posicao.",
+    "overlay": "Confirmar qual propriedade a fotografia revela.",
+    "target": "Descobrir a quem a mensagem esta conduzindo.",
+    "books": "Usar as marcas da biblioteca para liberar a proxima peca.",
+    "clock": "Usar o horario confiavel para abrir o relogio.",
+    "gallery": "Separar registros fixos de cartoes falsos.",
+    "altered": "Encontrar a fotografia que altera um registro comprovado.",
+    "lock_a": "Abrir o primeiro painel pelo padrao numerico.",
+    "lock_b": "Abrir o segundo painel pela cronologia comprovada.",
+    "lock_c": "Abrir o terceiro painel descartando a afirmacao falsa.",
+    "recordings": "Escolher a gravacao que respeita tempo e alvo.",
+    "grid": "Reconstruir a cronologia sem inventar identidade.",
+    "photos": "Separar fotos verificaveis de imagens adulteradas.",
+    "final_code": "Cruzar tres registros para acessar o catalogo.",
+    "recovery_one": "Reconstituir a cronologia para desviar o bloqueio.",
+    "recovery_two": "Reproduzir o padrao para isolar o circuito.",
+    "final_deduction": "Sustentar a conclusao final com provas, nao suspeitas.",
+}
 
 HOTSPOT_POSITIONS = {
     "desk": (553, 311), "phone": (1040, 393), "chair": (554, 416),

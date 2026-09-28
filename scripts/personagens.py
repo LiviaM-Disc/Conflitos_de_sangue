@@ -172,9 +172,23 @@ class Player:
         self.action_timer = 0.0
         self.walk_time = 0.0
         self.facing_left = False
+        self.walk_target: tuple[int, int] | None = None
 
     def investigate(self) -> None:
+        self.walk_target = None
         self.action_timer = 0.8
+
+    def walk_to(self, position: tuple[int, int], bounds: pygame.Rect) -> None:
+        target = self.rect.copy()
+        target.midbottom = (int(position[0]), int(position[1]))
+        target.clamp_ip(bounds)
+        self.walk_target = target.midbottom
+        if target.centerx != self.rect.centerx:
+            self.facing_left = target.centerx < self.rect.centerx
+        self.action_timer = 0.0
+
+    def clear_walk_target(self) -> None:
+        self.walk_target = None
 
     def update(self, dt: float, keys: pygame.key.ScancodeWrapper, bounds: pygame.Rect, obstacles: tuple = ()) -> None:
         self.action_timer = max(0.0, self.action_timer - dt)
@@ -188,6 +202,28 @@ class Player:
             dy -= 1
         if keys[pygame.K_DOWN] or keys[pygame.K_s]:
             dy += 1
+
+        keyboard_moving = bool(dx or dy)
+        if keyboard_moving:
+            self.walk_target = None
+        elif self.walk_target is not None:
+            current = pygame.Vector2(self.rect.midbottom)
+            target = pygame.Vector2(self.walk_target)
+            delta = target - current
+            distance = delta.length()
+            step = self.speed * dt
+            if distance <= max(1.0, step):
+                previous_position = self.rect.topleft
+                self.rect.midbottom = (round(target.x), round(target.y))
+                self.rect.clamp_ip(bounds)
+                self.walk_target = None
+                self.moving = self.rect.topleft != previous_position
+                self.walk_time = self.walk_time + dt if self.moving else 0.0
+                return
+            if distance:
+                direction = delta.normalize()
+                dx = direction.x
+                dy = direction.y
 
         if dx and dy:
             dx *= 0.7071
@@ -209,6 +245,8 @@ class Player:
         self.walk_time = self.walk_time + dt if self.moving else 0.0
         if self.moving:
             self.action_timer = 0.0
+        elif self.walk_target is not None and self.rect.midbottom == self.walk_target:
+            self.walk_target = None
 
     def draw(self, surface: pygame.Surface) -> None:
         pose = "action" if self.action_timer > 0 else "walk" if self.moving else "idle"
