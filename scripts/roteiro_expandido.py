@@ -301,6 +301,32 @@ OBJECTIVES = [
     "Verificar fotos e documentos para explicar por que a mensagem foi dirigida a Cassie.",
 ]
 
+PUZZLE_GOALS = {
+    "writing": "Entender se as marcas indicam plano, coacao ou ruido.",
+    "office_conclusion": "Separar a saida de Celine da chegada do envelope.",
+    "witness": "Testar a fala do depoente contra os registros.",
+    "camera": "Recuperar a janela em que o envelope apareceu.",
+    "sequence": "Descobrir o termo que mantem o padrao do envelope.",
+    "intruder": "Identificar o numero que foi inserido no padrao.",
+    "positional": "Abrir o compartimento sem ignorar a regra de posicao.",
+    "overlay": "Confirmar qual propriedade a fotografia revela.",
+    "target": "Descobrir a quem a mensagem esta conduzindo.",
+    "books": "Usar as marcas da biblioteca para liberar a proxima peca.",
+    "clock": "Usar o horario confiavel para abrir o relogio.",
+    "gallery": "Separar registros fixos de cartoes falsos.",
+    "altered": "Encontrar a fotografia que altera um registro comprovado.",
+    "lock_a": "Abrir o primeiro painel pelo padrao numerico.",
+    "lock_b": "Abrir o segundo painel pela cronologia comprovada.",
+    "lock_c": "Abrir o terceiro painel descartando a afirmacao falsa.",
+    "recordings": "Escolher a gravacao que respeita tempo e alvo.",
+    "grid": "Reconstruir a cronologia sem inventar identidade.",
+    "photos": "Separar fotos verificaveis de imagens adulteradas.",
+    "final_code": "Cruzar tres registros para acessar o catalogo.",
+    "recovery_one": "Reconstituir a cronologia para desviar o bloqueio.",
+    "recovery_two": "Reproduzir o padrao para isolar o circuito.",
+    "final_deduction": "Sustentar a conclusao final com provas, nao suspeitas.",
+}
+
 HOTSPOT_POSITIONS = {
     "desk": (553, 311), "phone": (1040, 393), "chair": (554, 416),
     "glass": (685, 307), "bin": (399, 399), "lamp": (478, 224), "new_envelope": (610, 305),

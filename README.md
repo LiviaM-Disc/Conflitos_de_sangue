@@ -101,9 +101,9 @@ final cruza referencias documentais, nao destranca uma saida.
 - Numeros: codigos; Enter: confirmar; Backspace: corrigir.
 - WASD/setas e E continuam disponiveis na exploracao.
 
-Todo enigma tem duas dicas progressivas e uma opcao explicita de ver a
-resposta. Consultar dicas nao resolve o enigma automaticamente nem apaga a
-resposta em andamento. As dicas sao gratuitas e ficam registradas no save.
+Todo enigma tem dicas progressivas, cada vez mais diretas, mas sem registrar
+automaticamente a resposta. Consultar dicas nao resolve o enigma nem apaga a
+entrada em andamento. As dicas sao gratuitas e ficam registradas no save.
 Erros descontam 5 pontos, sem saldo negativo, perda de itens ou bloqueio dos paineis.
 Os terminais narrativos da quinta fase continuam permitindo duas consultas
 diferentes; esse limite nao se aplica ao botao Dica.

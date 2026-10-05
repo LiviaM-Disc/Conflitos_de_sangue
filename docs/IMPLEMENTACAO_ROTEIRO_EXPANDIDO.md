@@ -55,8 +55,8 @@ todos os dados. Foram definidos dados locais, sem acrescentar autoria a Lorelai:
 - Cada enigma resolvido registra um checkpoint para compatibilidade. Erros
   nao provocam retorno nem tempo de espera. Cada erro penalizado desconta
   5 pontos, com pontuacao minima zero.
-- Todos os enigmas possuem duas dicas graduais e uma revelacao opcional da
-  resposta. A consulta preserva selecoes e nao conclui o enigma automaticamente.
+- Todos os enigmas possuem dicas graduais que orientam a revisao sem revelar
+  a resposta pronta. A consulta preserva selecoes e nao conclui o enigma automaticamente.
 - A melhor classificacao exige poucos erros, nenhuma identidade atribuida sem
   prova e leitura dos registros opcionais de recepcao, roteador e galeria.
 

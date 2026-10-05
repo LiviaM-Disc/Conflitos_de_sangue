@@ -6,13 +6,13 @@ import math
 
 import pygame
 
-from scripts.interfaces import Button, TEXT, MUTED, ACCENT_2, GOOD, BAD, draw_band, draw_text, wrap_text
+from scripts.interfaces import Button, TEXT, MUTED, ACCENT, ACCENT_2, GOOD, BAD, draw_band, draw_text, wrap_text
 from scripts.investigacao import InvestigationState
 from scripts.instrucoes import PUZZLE_INSTRUCTIONS
 from scripts.campanha_visual import CampaignVisual, COMPANIONS, CONVERSATIONS
 from scripts.roteiro_expandido import (PROLOGUE, EPILOGUE, CHAPTERS, ITEMS, OBJECTS,
                                       PUZZLES, ROOMS, OBJECTIVES, GRID_ROWS, EVIDENCE_DATA, HOTSPOT_POSITIONS,
-                                      GUIDED_STEPS, PROOF_OPTIONS, PUZZLE_HINTS, DIALOGUES, BRIEFING,
+                                      GUIDED_STEPS, PROOF_OPTIONS, PUZZLE_HINTS, PUZZLE_GOALS, DIALOGUES, BRIEFING,
                                       CASE_SUMMARIES, CHAPTER_RECAPS)
 
 
@@ -122,15 +122,110 @@ class ExpandedCampaign:
         action = "Montar ferramenta magnetica" if key == "magnetic_tool" else OBJECTS[key]["label"]
         return action + " / " + ROOMS[room]["title"]
 
+    def next_action_hint(self):
+        step = self.next_step()
+        if step is None:
+            return "Etapa concluida. Revise o dossie ou avance quando a cena liberar."
+        room, key = step
+        if key == "magnetic_tool":
+            missing = [ITEMS[item][0] for item in ("magnet", "strip") if item not in self.data["selected_items"]]
+            if missing:
+                return "Selecione no inventario: " + " + ".join(missing) + ". Depois clique em Combinar."
+            return "Clique em Combinar para montar a ferramenta magnetica."
+        if room != self.data["room"]:
+            return "Va para " + ROOMS[room]["title"] + " usando as passagens no alto ou o botao Locais."
+        content = OBJECTS[key]
+        missing_items = self.missing_selected_items(key)
+        if missing_items:
+            return "Selecione " + " + ".join(ITEMS[item][0] for item in missing_items) + " e clique em " + content["label"] + "."
+        return "Clique em " + content["label"] + " para examinar."
+
+    def current_objective(self):
+        step = self.next_step()
+        if step is None:
+            return "Etapa concluida. Revise o dossie ou avance."
+        room, key = step
+        if key == "magnetic_tool":
+            return "Monte uma ferramenta para alcancar a grelha."
+        if room != self.data["room"]:
+            return "Siga para " + ROOMS[room]["title"] + "."
+        content = OBJECTS[key]
+        if content["use"]:
+            missing = self.missing_selected_items(key)
+            if missing:
+                return "Selecione " + " + ".join(ITEMS[item][0] for item in missing) + "."
+        return "Investigue " + content["label"] + "."
+
+    def object_hint(self, key):
+        content = OBJECTS[key]
+        done = (content["puzzle"] or key) in self.data["flags"]
+        if done:
+            return "Ja conferido. Clique para reler."
+        missing_needs = [need for need in content["needs"] if not self.has(need)]
+        if missing_needs:
+            labels = [ITEMS[need][0] if need in ITEMS else EVIDENCE_DATA[need][0] if need in EVIDENCE_DATA else OBJECTS[need]["label"] for need in missing_needs]
+            return "Falta antes: " + ", ".join(labels)
+        missing_items = self.missing_selected_items(key)
+        if missing_items:
+            return "Selecione no inventario: " + ", ".join(ITEMS[item][0] for item in missing_items)
+        if self.data["selected_items"]:
+            selected = " + ".join(ITEMS[item][0] for item in self.data["selected_items"])
+            return "Clique para usar " + selected + " em " + content["label"] + "."
+        return "Clique para examinar."
+
+    def missing_selected_items(self, key):
+        required = OBJECTS[key]["use"]
+        selected = self.data["selected_items"]
+        if key == "photo_table" and all(item in self.data["inventory"] for item in required):
+            return [] if any(item in selected for item in required) else ["overlay"]
+        return [item for item in required if item not in selected]
+
+    def focus_hint_target(self):
+        prefix = f"world:{self.data['chapter']}:"
+        markers = [value for value in self.data["help_used"] if value.startswith(prefix)]
+        if not markers:
+            return None
+        return markers[-1].split(":", 2)[2]
+
+    def focus_hint_matches(self, button):
+        target = self.focus_hint_target()
+        if target is None or not isinstance(button.value, tuple):
+            return False
+        action, key = button.value
+        step = self.next_step()
+        if step is None:
+            return False
+        room, step_key = step
+        if target == "magnetic_tool" and action == "item" and key in {"magnet", "strip"}:
+            return True
+        if action == "walk" and key == room and room != self.data["room"]:
+            return True
+        return action == "object" and key == step_key and room == self.data["room"]
+
     def note(self, title, text, back="explore"):
         self.data.update(view="note", note_title=title, note_text=text, note_return=back, page=0)
 
     def reward(self, content):
+        added_items, added_evidence = [], []
         for key in content.get("items", []):
             if key not in self.data["inventory"]:
                 self.data["inventory"].append(key)
+                added_items.append(key)
         for key in content.get("evidence", []):
-            self.game.investigation.add_evidence(key)
+            is_new, _ = self.game.investigation.add_evidence(key)
+            if is_new:
+                added_evidence.append(key)
+        return added_items, added_evidence
+
+    def reward_summary(self, items, evidences):
+        lines = []
+        if evidences:
+            names = ", ".join(EVIDENCE_DATA[key][0] for key in evidences)
+            lines.append("Nova evidencia: " + names + ".")
+        if items:
+            names = ", ".join(ITEMS[key][0] for key in items)
+            lines.append("Item obtido: " + names + ".")
+        return "\n\n".join(lines)
 
     def checkpoint(self):
         saved = deepcopy({k: v for k, v in self.data.items() if k != "checkpoint"})
@@ -163,22 +258,15 @@ class ExpandedCampaign:
         used[:] = [value for value in used if not value.startswith(f"hint:{key}:")]
         used.append(f"hint:{key}:{level}")
         content = PUZZLES[key]
-        if level < 3:
+        if level == 1:
             text = PUZZLE_HINTS[key][level - 1]
-            title = f"Dica {level} de 2: " + content["title"]
+            title = "Dica 1 de 3: " + content["title"]
+        elif level == 2:
+            text = PUZZLE_HINTS[key][1]
+            title = "Dica 2 de 3: " + content["title"]
         else:
-            answer = content["answer"]
-            labels = dict(content["options"])
-            if content["kind"] == "grid":
-                text = "\n".join(row + ": " + labels[value] for row, value in zip(GRID_ROWS[key], answer))
-            elif isinstance(answer, list):
-                text = "\n".join(f"{i + 1}. {labels[value]}" for i, value in enumerate(answer))
-            else:
-                text = labels.get(answer, answer)
-            if content["proofs"]:
-                text += "\n\nProvas: " + "; ".join(EVIDENCE_DATA[proof][0] for proof in content["proofs"])
-            text += "\n\n" + PUZZLE_HINTS[key][1]
-            title = "Resposta: " + content["title"]
+            text = PUZZLE_HINTS[key][1] + "\n\nConfira o dossie e confirme pela interface. A dica nao registra a resposta por voce."
+            title = "Dica final: " + content["title"]
         self.note(title, text, "puzzle")
 
     def advance(self, phase, room):
@@ -230,26 +318,22 @@ class ExpandedCampaign:
             if key in {"lock_b", "lock_c"}:
                 self.penalize("A placa exige a ordem A, B, C. O mecanismo reagiu ao acionamento prematuro.")
             else:
-                self.note(content["label"], "Ainda falta uma descoberta anterior. " + content["text"])
+                self.game.set_message("Ainda falta uma descoberta anterior.", 3.5)
             return
-        selected = set(self.data["selected_items"])
-        ready_to_use = set(content["use"]).issubset(selected)
-        # The light table supplies the workspace; the companion photo can stay in the bag.
-        if key == "photo_table" and selected.intersection(content["use"]):
-            ready_to_use = all(item in self.data["inventory"] for item in content["use"])
+        ready_to_use = not self.missing_selected_items(key)
         if content["use"] and not ready_to_use:
             if key == "drawer" and any(k in self.data["selected_items"] for k in ("key471", "key714")):
                 self.penalize("Esta chave nao abre a gaveta. Confira a etiqueta e tente outra.")
                 return
             if key == "drawer":
-                self.note("Escolher chave", "A etiqueta da tampa lateral indica o patrimonio 417. Qual copia abre esta gaveta?")
+                self.note("Escolher chave", "Patrimonio 417.")
                 return
-            self.note(content["label"], "Objeto necessario: " + ", ".join(ITEMS[item][0] for item in content["use"]) + ".")
+            self.game.set_message("Precisa: " + " + ".join(ITEMS[item][0] for item in content["use"]), 3.5)
             return
         if key == "terminals":
             self.data.update(view="help", page=0)
             return
-        self.reward(content)
+        items, evidences = self.reward(content)
         if content["use"]:
             self.data["selected_items"] = [item for item in self.data["selected_items"]
                                            if item not in content["use"]]
@@ -261,6 +345,9 @@ class ExpandedCampaign:
                 self.advance(*content["phase"])
             else:
                 text = content["text"]
+                summary = self.reward_summary(items, evidences)
+                if summary:
+                    text += "\n\n" + summary
                 for evidence in content["evidence"]:
                     text += "\n\n" + EVIDENCE_DATA[evidence][1]
                 self.note(content["label"], text)
@@ -298,10 +385,10 @@ class ExpandedCampaign:
         if not correct:
             failures = self.data["failures"].get(key, 0) + 1
             self.data["failures"][key] = failures
-            self.penalize("Ainda nao. Seu progresso foi mantido; voce pode tentar novamente.", exposure=0)
+            self.penalize("Resultado inconclusivo. Revise os registros e tente novamente.", exposure=0)
             return
         self.flag(key)
-        self.reward(content)
+        items, evidences = self.reward(content)
         if kind == "proof":
             self.game.investigation.register_connection(True)
             for proof in self.data["proofs"]:
@@ -312,9 +399,10 @@ class ExpandedCampaign:
             self.game.investigation.register_puzzle(True)
         if key == "recovery_two":
             self.flag("final_code")
-        message = "Os registros sustentam a resposta."
-        if content["items"]:
-            message += " Objetos obtidos: " + ", ".join(ITEMS[k][0] for k in content["items"]) + "."
+        message = "Analise concluida. Os registros sustentam a resposta."
+        summary = self.reward_summary(items, evidences)
+        if summary:
+            message += "\n\n" + summary
         for proof in content["evidence"]:
             message += "\n\n" + EVIDENCE_DATA[proof][1]
         if key == "witness":
@@ -421,7 +509,7 @@ class ExpandedCampaign:
                 keys = [k for k in PROOF_OPTIONS[d["puzzle"]] if self.has(k)]
                 for i, key in enumerate(keys[d["page"] * 6:d["page"] * 6 + 6]):
                     selected = key in d["proofs"]
-                    buttons.append(self.button((50 + i % 2 * 520, 285 + i // 2 * 72, 500, 58), EVIDENCE_DATA[key][0], ("proof", key), selected or len(d["proofs"]) < 3, selected))
+                    buttons.append(self.button((50 + i % 2 * 520, 285 + i // 2 * 72, 500, 58), EVIDENCE_DATA[key][0], ("proof", key), selected or len(d["proofs"]) < len(content["proofs"]), selected))
                 buttons += self.page_buttons(len(keys), 6)
             elif kind == "grid":
                 options = dict(content["options"])
@@ -440,8 +528,8 @@ class ExpandedCampaign:
             buttons += [self.button((50, 630, 150, 48), "Voltar", "puzzle_back"),
                         self.button((220, 630, 145, 48), "Limpar", "clear"),
                         self.button((390, 630, 145, 48), "Dossie", "dossier"),
-                        self.button((550, 630, 155, 48), "Ver resposta" if self.hint_level() >= 2 else "Dica", "hint"),
-                        self.button((715, 630, 165, 48), "Confirmar", "submit")]
+                        self.button((550, 630, 155, 48), "Dica final" if self.hint_level() >= 2 else "Dica", "hint"),
+                        self.button((715, 630, 165, 48), "Confirmar", "submit", self.ready_to_submit())]
         elif view in {"report", "ended"}:
             buttons = [self.button((510, 630, 250, 48), "Ranking", "ranking"),
                        self.button((790, 630, 270, 48), "Voltar ao menu", "menu")]
@@ -450,6 +538,55 @@ class ExpandedCampaign:
     def page_buttons(self, length, size):
         return [self.button((900, 630, 60, 48), "<", "previous", self.data["page"] > 0),
                 self.button((980, 630, 60, 48), ">", "next", (self.data["page"] + 1) * size < length)]
+
+    def ready_to_submit(self):
+        d = self.data
+        if d["view"] != "puzzle" or not d["puzzle"]:
+            return False
+        content = PUZZLES[d["puzzle"]]
+        kind = content["kind"]
+        if kind == "code":
+            return bool(d["input"].strip())
+        if kind == "choice":
+            return bool(d["choice"])
+        if kind in {"order", "set"}:
+            return len(d["answers"]) == len(content["answer"]) and "" not in d["answers"]
+        if kind == "grid":
+            return bool(d["answers"]) and "" not in d["answers"]
+        if kind == "proof":
+            return bool(d["choice"]) and len(d["proofs"]) == len(content["proofs"])
+        return False
+
+    def puzzle_status(self, content):
+        d = self.data
+        kind = content["kind"]
+        if kind == "code":
+            return "Codigo pronto." if d["input"].strip() else "Digite o codigo."
+        if kind == "choice":
+            return "Confirmar." if d["choice"] else "Escolha uma opcao."
+        if kind == "order":
+            return f"Ordem: {len(d['answers'])}/{len(content['answer'])}"
+        if kind == "set":
+            return f"Marcadas: {len(d['answers'])}/{len(content['answer'])}"
+        if kind == "grid":
+            filled = sum(1 for answer in d["answers"] if answer)
+            return f"Campos: {filled}/{len(GRID_ROWS[d['puzzle']])}"
+        if kind == "proof":
+            if not d["choice"]:
+                return "Escolha a conclusao."
+            return f"Provas: {len(d['proofs'])}/{len(content['proofs'])}"
+        return PUZZLE_INSTRUCTIONS[kind]
+
+    def place_player_near(self, rect):
+        bounds = pygame.Rect(48, 337, 1034, 204)
+        previous_x = self.game.player.rect.centerx
+        self.game.player.rect.midbottom = (rect.centerx, min(542, rect.bottom + 70))
+        self.game.player.rect.clamp_ip(bounds)
+        self.game.player.facing_left = rect.centerx < previous_x
+
+    def place_player_at(self, pos):
+        bounds = pygame.Rect(48, 337, 1034, 204)
+        self.game.player.walk_to(pos, bounds)
 
     def activate(self, value):
         d = self.data
@@ -484,6 +621,8 @@ class ExpandedCampaign:
                     return
                 if key in d["selected_items"]:
                     d["selected_items"].remove(key)
+                    if d["view"] == "explore":
+                        self.game.set_message("Mao vazia.", 2.5)
                 elif len(d["selected_items"]) < 2:
                     d["selected_items"].append(key)
                 else:
@@ -505,7 +644,7 @@ class ExpandedCampaign:
             elif action == "proof":
                 if key in d["proofs"]:
                     d["proofs"].remove(key)
-                elif len(d["proofs"]) < 3:
+                elif len(d["proofs"]) < len(PUZZLES[d["puzzle"]]["proofs"]):
                     d["proofs"].append(key)
             elif action == "grid":
                 options = [k for k, _ in PUZZLES[d["puzzle"]]["options"]]
@@ -519,7 +658,13 @@ class ExpandedCampaign:
         elif value == "clear_items":
             d["selected_items"] = []
         elif value == "world_hint":
-            self.note("Pista para continuar", self.step_label())
+            step = self.next_step()
+            if step:
+                target = step[1]
+                marker = f"world:{d['chapter']}:{target}"
+                d["help_used"] = [value for value in d["help_used"] if not value.startswith(f"world:{d['chapter']}:")]
+                d["help_used"].append(marker)
+            self.note("O que fazer agora", self.next_action_hint())
         elif value in {"inventory", "map", "help"}:
             d.update(view=value, page=0)
             if value == "map":
@@ -614,9 +759,27 @@ class ExpandedCampaign:
                     self.activate("next")
                 else:
                     self.activate("note_back")
-        for button in self.buttons():
+        buttons = self.buttons()
+        if d["view"] == "explore":
+            def priority(button):
+                value = button.value
+                if isinstance(value, tuple) and value[0] == "walk":
+                    return 0
+                if not isinstance(value, tuple) or value[0] == "item":
+                    return 1
+                return 2
+            buttons = sorted(buttons, key=priority)
+        for button in buttons:
             if button.hit(event):
+                if d["view"] == "explore" and isinstance(button.value, tuple) and button.value[0] in {"object", "talk", "walk"}:
+                    self.place_player_near(button.rect)
+                    if button.value[0] != "walk":
+                        self.game.player.investigate()
                 self.activate(button.value)
+                return
+        if d["view"] == "explore" and event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if pygame.Rect(48, 337, 1034, 213).collidepoint(event.pos):
+                self.place_player_at(event.pos)
                 return
 
     def update(self, dt):
@@ -679,8 +842,9 @@ class ExpandedCampaign:
             elif view == "puzzle":
                 content = PUZZLES[d["puzzle"]]
                 draw_text(g.screen, content["title"], g.fonts.h2, TEXT, pygame.Rect(50, 127, 1000, 35))
+                draw_text(g.screen, "Objetivo: " + PUZZLE_GOALS.get(d["puzzle"], "Resolver a analise atual."), g.fonts.small, ACCENT_2, pygame.Rect(50, 162, 1010, 24))
                 prompt = dict(content["options"])[d["choice"]] if content["kind"] == "proof" and d["choice"] else content["prompt"]
-                draw_text(g.screen, prompt, g.fonts.body, TEXT, pygame.Rect(50, 172, 1010, 97))
+                draw_text(g.screen, prompt, g.fonts.body, TEXT, pygame.Rect(50, 190, 1010, 79))
                 if content["kind"] == "code" and d["puzzle"] != "final_code":
                     pygame.draw.rect(g.screen, (36, 54, 52), pygame.Rect(180, 318, 760, 76), border_radius=4)
                     draw_text(g.screen, d["input"] or "_", g.fonts.h1, TEXT, pygame.Rect(205, 334, 710, 52))
@@ -692,8 +856,8 @@ class ExpandedCampaign:
                             g.screen.blit(pygame.transform.smoothscale(portrait, (32, 46)), (415, 270 + i * 56))
                 status = g.message
                 if content["kind"] == "proof" and d["choice"]:
-                    status = status or f"Provas anexadas: {len(d['proofs'])} / {len(content['proofs'])}. Marque as provas e clique em Confirmar."
-                status = status or PUZZLE_INSTRUCTIONS[content["kind"]]
+                    status = status or self.puzzle_status(content)
+                status = status or self.puzzle_status(content)
                 draw_text(g.screen, status, g.fonts.small, MUTED, pygame.Rect(50, 590, 1020, 34))
             elif view == "ended":
                 draw_text(g.screen, "Investigacao encerrada pelo jogador", g.fonts.h1, TEXT, pygame.Rect(60, 160, 1000, 70))

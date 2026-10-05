@@ -2,7 +2,7 @@
 
 import pygame
 
-from scripts.interfaces import TEXT, MUTED, GOOD, ACCENT_2, draw_band, draw_text, wrap_text
+from scripts.interfaces import TEXT, MUTED, ACCENT, GOOD, ACCENT_2, draw_band, draw_text, wrap_text
 from scripts.roteiro_expandido import ROOMS, OBJECTS, ITEMS, OBJECTIVES, PUZZLES, TEAM_PROFILES
 
 
@@ -109,10 +109,10 @@ class CampaignVisual:
 
     def object_rect(self, key, index):
         if key in OBJECT_RECTS:
-            return pygame.Rect(OBJECT_RECTS[key])
+            return pygame.Rect(OBJECT_RECTS[key]).inflate(14, 14)
         if prop_kind(key) == "person":
-            return pygame.Rect(265 + index * 135, 345, 105, 160)
-        return pygame.Rect(265 + index % 4 * 177, 210 + index // 4 * 140, 110, 88)
+            return pygame.Rect(265 + index * 135, 345, 120, 170)
+        return pygame.Rect(260 + index % 4 * 177, 206 + index // 4 * 140, 120, 96)
 
     def inventory_buttons(self):
         c, d = self.c, self.c.data
@@ -145,7 +145,7 @@ class CampaignVisual:
                     c.button((702, 594, 80, 34), "Itens", "inventory"),
                     c.button((794, 594, 80, 34), "Locais", "map"),
                     c.button((886, 594, 80, 34), "Pistas", "dossier"),
-                    c.button((978, 594, 115, 34), "Dica", "world_hint")]
+                    c.button((978, 594, 115, 34), "O que fazer?", "world_hint")]
         return buttons
 
     def action_label(self, button):
@@ -252,6 +252,8 @@ class CampaignVisual:
         g, c = self.g, self.c
         for i in range(6):
             pygame.draw.rect(g.screen, (65, 85, 84), (25 + i * 128, 637, 118, 72), 1, border_radius=4)
+        if not c.data["inventory"]:
+            draw_text(g.screen, "Inventario vazio", self.item_font, MUTED, pygame.Rect(25, 664, 760, 24), align="center")
         for button in self.inventory_buttons():
             if not isinstance(button.value, tuple):
                 button.draw(g.screen, g.fonts, pygame.mouse.get_pos())
@@ -286,9 +288,88 @@ class CampaignVisual:
             label = pygame.transform.smoothscale(label, (max(1, int(label.get_width() * scale)), max(1, int(label.get_height() * scale))))
         g.screen.blit(label, label.get_rect(center=button.rect.center))
 
+    def hovered_button(self, buttons):
+        mouse = pygame.mouse.get_pos()
+        for button in reversed(buttons):
+            if button.enabled and button.rect.collidepoint(mouse):
+                return button
+        return None
+
+    def action_text(self, button):
+        if not button:
+            return "", ""
+        value = button.value
+        d = self.c.data
+        if isinstance(value, tuple):
+            action, key = value
+            if action == "object":
+                label = OBJECTS[key]["label"]
+                if d["selected_items"]:
+                    selected = " + ".join(ITEMS[item][0] for item in d["selected_items"])
+                    return "Usar " + selected, label
+                done = (OBJECTS[key]["puzzle"] or key) in d["flags"]
+                return "Reler" if done else "Examinar", label
+            if action == "talk":
+                return "Conversar", COMPANIONS[key]
+            if action == "walk":
+                return "Ir para", ROOMS[key]["title"]
+            if action == "item":
+                return ("Guardar" if key in d["selected_items"] else "Selecionar"), ITEMS[key][0]
+        if isinstance(value, str) and value in {"combine", "inventory", "map", "dossier", "world_hint"}:
+            return button.text.replace(" (I)", "").replace(" (M)", ""), ""
+        return "", ""
+
+    def draw_action_strip(self, message, subtext=""):
+        g = self.g
+        portrait = pygame.transform.smoothscale(g.stage_portraits["cassie"], (44, 64))
+        g.screen.blit(portrait, (24, 557))
+        bubble = pygame.Rect(78, 558, 500, 66)
+        pygame.draw.rect(g.screen, (18, 26, 27), bubble, border_radius=8)
+        pygame.draw.rect(g.screen, (77, 104, 98), bubble, 1, border_radius=8)
+        draw_text(g.screen, message, g.fonts.small, TEXT, pygame.Rect(94, 567, 460, 24))
+        if subtext:
+            draw_text(g.screen, subtext, g.fonts.small, ACCENT_2, pygame.Rect(94, 596, 460, 22))
+
+    def draw_target_label(self, rect, text, color):
+        g = self.g
+        image = g.fonts.small.render(text, True, TEXT)
+        label = image.get_rect(midbottom=(rect.centerx, rect.y - 6)).inflate(16, 8)
+        label.clamp_ip(pygame.Rect(6, 118, 1108, 580))
+        pygame.draw.rect(g.screen, (18, 26, 27), label, border_radius=4)
+        pygame.draw.rect(g.screen, color, label, 1, border_radius=4)
+        g.screen.blit(image, image.get_rect(center=label.center))
+
+    def draw_object_tooltip(self, button):
+        g = self.g
+        key = button.value[1]
+        lines = [button.text] + wrap_text(self.c.object_hint(key), g.fonts.small, 286)
+        height = 16 + len(lines) * (g.fonts.small.get_height() + 3)
+        rect = pygame.Rect(0, 0, 316, height)
+        rect.midbottom = (button.rect.centerx, button.rect.y - 8)
+        rect.clamp_ip(pygame.Rect(8, 124, 1104, 420))
+        pygame.draw.rect(g.screen, (16, 23, 24), rect, border_radius=5)
+        pygame.draw.rect(g.screen, GOOD, rect, 1, border_radius=5)
+        y = rect.y + 8
+        for index, line in enumerate(lines[:4]):
+            image = g.fonts.small.render(line, True, TEXT if index == 0 else MUTED)
+            g.screen.blit(image, (rect.x + 12, y))
+            y += image.get_height() + 3
+
+    def draw_attention_rect(self, rect, label):
+        g = self.g
+        pulse = 6 + (pygame.time.get_ticks() // 350 % 2) * 4
+        outline = rect.inflate(pulse * 2, pulse * 2)
+        pygame.draw.rect(g.screen, ACCENT, outline, 2, border_radius=6)
+        self.draw_target_label(rect, label, ACCENT)
+
     def draw_explore(self):
         c, g, d = self.c, self.g, self.c.data
         buttons = self.explore_buttons()
+        hover = self.hovered_button(buttons)
+        try:
+            pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND if hover else pygame.SYSTEM_CURSOR_ARROW)
+        except pygame.error:
+            pass
         for button in buttons:
             if isinstance(button.value, tuple) and button.value[0] == "object":
                 key = button.value[1]
@@ -298,16 +379,29 @@ class CampaignVisual:
                     self.draw_prop(key, button.rect, done)
                 if done:
                     pygame.draw.circle(g.screen, GOOD, (button.rect.right - 4, button.rect.y + 4), 4)
+                if c.focus_hint_matches(button):
+                    self.draw_attention_rect(button.rect, "Investigar")
             elif isinstance(button.value, tuple) and button.value[0] == "talk":
                 actor = COMPANIONS[button.value[1]].lower()
                 g.screen.blit(pygame.transform.smoothscale(g.stage_portraits[actor], button.rect.size), button.rect)
+                if c.focus_hint_matches(button):
+                    self.draw_attention_rect(button.rect, "Conversar")
+            elif isinstance(button.value, tuple) and button.value[0] == "walk":
+                if c.focus_hint_matches(button):
+                    self.draw_attention_rect(button.rect, ROOMS[button.value[1]]["title"])
         if d["room"] == "intro":
             g.screen.blit(pygame.transform.smoothscale(g.stage_portraits["daniel"], (100, 155)), (850, 350))
         g.player.rect.clamp_ip(pygame.Rect(48, 340, 1034, 201))
+        if getattr(g.player, "walk_target", None):
+            x, y = g.player.walk_target
+            pulse = 7 + (pygame.time.get_ticks() // 160 % 4)
+            pygame.draw.circle(g.screen, (18, 26, 27), (x, y - 5), pulse + 4)
+            pygame.draw.circle(g.screen, ACCENT_2, (x, y - 5), pulse, 2)
+            pygame.draw.circle(g.screen, TEXT, (x, y - 5), 2)
         g.player.draw(g.screen)
         draw_band(g.screen, pygame.Rect(0, 550, 1120, 170))
         selected = ", ".join(ITEMS[k][0] for k in d["selected_items"])
-        draw_text(g.screen, g.message or ("Em maos: " + selected if selected else OBJECTIVES[d["chapter"]]), g.fonts.small, TEXT, pygame.Rect(25, 560, 1070, 31))
+        draw_text(g.screen, g.message or ("Em maos: " + selected if selected else c.current_objective()), g.fonts.small, TEXT, pygame.Rect(25, 560, 1070, 31))
         if d["selected_items"]:
             draw_text(g.screen, selected, self.item_font, ACCENT_2, pygame.Rect(187, 594, 333, 36), line_spacing=0)
         self.draw_inventory()
@@ -315,7 +409,13 @@ class CampaignVisual:
             if isinstance(button.value, tuple) and button.value[0] in {"object", "talk"}:
                 if button.rect.collidepoint(pygame.mouse.get_pos()):
                     pygame.draw.rect(g.screen, GOOD, button.rect, 2, border_radius=3)
-                    self.draw_tooltip(self.action_label(button), button.rect)
+                    if button.value[0] == "object":
+                        self.draw_object_tooltip(button)
+                    else:
+                        self.draw_target_label(button.rect, button.text, GOOD)
+            elif isinstance(button.value, tuple) and button.value[0] == "walk":
+                if button.rect.collidepoint(pygame.mouse.get_pos()):
+                    self.draw_target_label(button.rect, ROOMS[button.value[1]]["title"], ACCENT_2)
             elif not (isinstance(button.value, tuple) and button.value[0] == "item") and button.value not in {"previous", "next"}:
                 self.draw_control(button)
         self.draw_inventory_tooltip()

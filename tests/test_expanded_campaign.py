@@ -385,8 +385,15 @@ class ExpandedCampaignTests(unittest.TestCase):
             self.c.data.update(chapter=3, room="evidence", view="explore", page=0,
                                inventory=inventory, selected_items=selected, puzzle="")
             self.click(("object", "photo_table"))
-            self.assertEqual(self.c.data["view"], "note")
+            self.assertEqual(self.c.data["view"], "explore")
+            self.assertTrue(self.game.message)
             self.assertFalse(self.c.has("x_address"))
+
+    def test_transparency_hint_matches_single_selected_item(self):
+        self.c.data.update(chapter=3, room="evidence", view="explore",
+                           inventory=["overlay", "folded_photo"], selected_items=["overlay"])
+        self.assertEqual(self.c.missing_selected_items("photo_table"), [])
+        self.assertIn("Clique para usar Transparencia", self.c.object_hint("photo_table"))
 
     def test_combination_returns_to_original_view(self):
         for view in ("explore", "inventory"):
@@ -397,6 +404,43 @@ class ExpandedCampaignTests(unittest.TestCase):
                 self.assertEqual(self.c.data["note_return"], view)
                 self.c.activate("note_back")
                 self.assertEqual(self.c.data["view"], view)
+
+    def test_current_objective_and_world_hint_focus_current_step(self):
+        for _ in OPENING:
+            self.click("dialogue_next")
+        self.assertEqual(self.c.current_objective(), "Investigue Bloco de Redding.")
+        self.click("world_hint")
+        self.assertEqual(self.c.data["note_title"], "O que fazer agora")
+        self.assertEqual(self.c.data["note_text"], "Clique em Bloco de Redding para examinar.")
+        self.dismiss()
+        target = next(button for button in self.c.buttons() if button.value == ("object", "redding_notes"))
+        self.assertTrue(self.c.focus_hint_matches(target))
+
+        self.c.data.update(chapter=1, room="office", view="explore", inventory=["carbon"],
+                           flags=["card_holder", "guest_book", "desk", "phone", "chair", "glass", "bin"],
+                           selected_items=[])
+        self.assertEqual(self.c.current_objective(), "Selecione Folha de carbono.")
+        self.assertEqual(self.c.object_hint("lamp"), "Selecione no inventario: Folha de carbono")
+        self.choose_from_bar("carbon")
+        self.assertEqual(self.c.object_hint("lamp"), "Clique para usar Folha de carbono em Luminaria e bloco.")
+
+    def test_floor_click_walks_player_instead_of_teleporting(self):
+        self.c.data.update(view="explore", chapter=1, room="office")
+        start = self.game.player.rect.topleft
+        destination = (360, 500)
+        self.game.handle_events([pygame.event.Event(pygame.MOUSEBUTTONDOWN, button=1, pos=destination)])
+
+        self.assertEqual(self.game.player.rect.topleft, start)
+        self.assertEqual(self.game.player.walk_target, destination)
+
+        self.game.update(0.2)
+        self.assertNotEqual(self.game.player.rect.topleft, start)
+        self.assertTrue(self.game.player.moving)
+
+        for _ in range(120):
+            self.game.update(0.05)
+        self.assertIsNone(self.game.player.walk_target)
+        self.assertEqual(self.game.player.rect.midbottom, destination)
 
     def test_complete_six_phases_with_inventory_and_backtracking(self):
         self.complete_office()
@@ -504,7 +548,9 @@ class ExpandedCampaignTests(unittest.TestCase):
     def test_errors_do_not_add_cooldown(self):
         self.c.data.update(view="explore", chapter=3, room="lab")
         self.inspect("sequence")
-        self.click("submit")
+        submit = next(button for button in self.c.buttons() if button.value == "submit")
+        self.assertFalse(submit.enabled)
+        self.game.handle_events([pygame.event.Event(pygame.MOUSEBUTTONDOWN, button=1, pos=submit.rect.center)])
         self.assertEqual(self.game.investigation.mistakes, 0)
         for _ in range(3):
             self.c.data["input"] = "99"

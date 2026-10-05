@@ -6,10 +6,10 @@ from scripts.roteiro_expandido import PUZZLES
 
 
 PAGES = [
-    ("Investigar o ambiente", [
-        ("Observe e clique", "Passe o mouse sobre os objetos para descobrir seus nomes. Clique para examinar ou conversar. Voce pode investigar com o mouse sem caminhar ate cada objeto."),
-        ("Leia o resultado", "As descobertas aparecem em uma tela de leitura. Use as setas se houver mais texto e Continuar para voltar. O ponto verde marca um objeto ou desafio ja concluido."),
-        ("Siga o objetivo", "O objetivo do capitulo aparece no alto. Use as passagens com nomes de salas ou Locais para mudar de ambiente. Dica indica onde procurar quando voce nao souber como continuar."),
+    ("Comece sem se perder", [
+        ("1. Veja o objetivo", "O texto no alto diz a meta do capitulo. A faixa inferior traduz isso em acao: investigar, selecionar item, conversar ou mudar de sala."),
+        ("2. Procure pontos clicaveis", "Passe o mouse pelo cenario. Objetos mostram nome e dica; clique para examinar. Clique no chao apenas para andar."),
+        ("3. Travou?", "Use O que fazer? para receber o proximo passo sem resolver o enigma. Pistas abre o dossie com tudo que ja foi descoberto."),
     ]),
     ("Usar e combinar itens", [
         ("Guardar nao e usar", "Itens coletados ficam na barra inferior. Clique no item para seleciona-lo e depois no objeto do cenario onde deseja usa-lo. Clique no item de novo para desmarcar. Nao precisa arrastar."),
@@ -24,7 +24,7 @@ PAGES = [
     ("Construir uma deducao", [
         ("Primeiro a conclusao", "Leia a pergunta e escolha a explicacao que os registros sustentam. Clicar na conclusao abre a selecao de provas; isso ainda nao envia sua resposta."),
         ("Depois as provas", "Marque as evidencias que sustentam a conclusao. O contador informa quantas provas sao esperadas. Apenas pistas ja coletadas ficam disponiveis. Clique de novo para retirar uma prova."),
-        ("Confirme o argumento", "Pressione Confirmar depois de escolher a conclusao e todas as provas. Limpar permite trocar a conclusao. Se faltar uma evidencia, volte a explorar e consulte Pistas ou Dica."),
+        ("Confirme o argumento", "Pressione Confirmar depois de escolher a conclusao e todas as provas. Limpar permite trocar a conclusao. Se faltar uma evidencia, volte a explorar e consulte Pistas ou O que fazer?."),
     ]),
     ("Encontrar salas e registros", [
         ("Passagens e mapa", "Os botoes no alto do cenario levam a salas vizinhas. Em Locais, escolha um capitulo ja alcancado e o ambiente. As setas mostram outras salas quando a lista tem mais de uma pagina."),
@@ -32,20 +32,20 @@ PAGES = [
         ("Quando um acesso esta fechado", "Leia o aviso para saber o que falta. Algumas salas exigem uma chave no inventario; outros objetos exigem que voce selecione o item antes de clicar. Novos capitulos dependem da conclusao da etapa atual."),
     ]),
     ("Dicas e progresso", [
-        ("Ajuda sem desconto", "Dica na exploracao indica o proximo passo. Em um enigma, ha duas dicas e depois Ver resposta. Consultar essas dicas nao tira pontos nem responde automaticamente. As consultas aos personagens podem ter limite."),
+        ("Ajuda sem desconto", "O que fazer? indica o proximo passo da exploracao. Em um enigma, Dica fica mais direta, mas nao registra a resposta por voce. As consultas aos personagens podem ter limite."),
         ("Pontuacao e ranking", "Acertos rendem pontos; erros penalizados custam 5, sem saldo negativo. O ranking registra o fim do epilogo ou a opcao Encerrar investigacao e registrar pontos na pausa. Encerrar impede continuar essa tentativa."),
-        ("Pode parar e continuar depois", "ESC abre a pausa; nela, escolha Salvar e voltar ao menu. Continuar investigacao retoma o progresso salvo. O guia Como jogar pode ser reaberto a qualquer momento pelo botao ou por F1, sem mudar sua resposta."),
+        ("Pode parar e continuar depois", "ESC abre a pausa; nela, escolha Salvar e voltar ao menu. Continuar investigacao retoma o progresso salvo. O Guia rapido pode ser reaberto a qualquer momento pelo botao ou por F1, sem mudar sua resposta."),
     ]),
 ]
 
 
 PUZZLE_INSTRUCTIONS = {
-    "choice": "Selecione uma alternativa e clique em Confirmar. Dica e gratuita.",
-    "code": "Digite o codigo e confirme. Use Apagar para corrigir; preserve zeros iniciais.",
-    "order": "Clique nos valores na ordem desejada e confirme. Limpar reinicia a selecao.",
-    "set": "Marque o conjunto pedido e confirme. Clique novamente para desmarcar.",
-    "grid": "Clique em cada campo para trocar a opcao. Preencha todas as linhas e confirme.",
-    "proof": "Escolha uma conclusao; depois selecione as provas e clique em Confirmar.",
+    "choice": "Escolha uma opcao. Confirmar.",
+    "code": "Digite o codigo. Enter confirma.",
+    "order": "Clique na ordem. Confirmar.",
+    "set": "Marque o conjunto. Confirmar.",
+    "grid": "Troque os campos. Confirmar.",
+    "proof": "Conclusao + provas. Confirmar.",
 }
 
 
@@ -59,7 +59,7 @@ class Instructions:
         return self.g.state in {"menu", "campaign"} and not (self.g.paused or self.g.show_clues or self.g.confirm_new or self.g.player_screens.active)
 
     def button(self):
-        return Button(pygame.Rect(925, 14, 175, 42), "Como jogar", "instructions")
+        return Button(pygame.Rect(925, 14, 175, 42), "Guia rapido", "instructions")
 
     def open(self, contextual=True):
         d = self.g.campaign_data
