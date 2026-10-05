@@ -2,7 +2,7 @@
 
 import pygame
 
-from scripts.interfaces import TEXT, MUTED, GOOD, ACCENT_2, draw_band, draw_text
+from scripts.interfaces import TEXT, MUTED, GOOD, ACCENT_2, draw_band, draw_text, wrap_text
 from scripts.roteiro_expandido import ROOMS, OBJECTS, ITEMS, OBJECTIVES, PUZZLES, TEAM_PROFILES
 
 
@@ -120,7 +120,7 @@ class CampaignVisual:
         page = d["page"] if d["view"] == "explore" else 0
         for i, key in enumerate(d["inventory"][page * 6:page * 6 + 6]):
             chosen = key in d["selected_items"]
-            buttons.append(c.button((25 + i * 128, 637, 118, 72), ITEMS[key][0], ("item", key), chosen or len(d["selected_items"]) < 2, chosen))
+            buttons.append(c.button((25 + i * 128, 637, 118, 72), ITEMS[key][0], ("item", key), True, chosen))
         if d["view"] == "explore":
             buttons += [c.button((806, 653, 48, 42), "<", "previous", page > 0),
                         c.button((864, 653, 48, 42), ">", "next", (page + 1) * 6 < len(d["inventory"]))]
@@ -138,12 +138,37 @@ class CampaignVisual:
         if d["room"] in COMPANIONS:
             buttons.append(c.button((106, 349, 100, 155), COMPANIONS[d["room"]], ("talk", d["room"])))
         buttons += self.inventory_buttons()
-        buttons += [c.button((590, 594, 100, 34), "Combinar", "combine", len(d["selected_items"]) == 2),
+        if d["selected_items"]:
+            buttons.append(c.button((532, 594, 46, 34), "X", "clear_items"))
+        buttons += [c.button((25, 594, 150, 34), "Resumo do caso", "case_summary"),
+                    c.button((590, 594, 100, 34), "Combinar", "combine", len(d["selected_items"]) == 2),
                     c.button((702, 594, 80, 34), "Itens", "inventory"),
                     c.button((794, 594, 80, 34), "Locais", "map"),
                     c.button((886, 594, 80, 34), "Pistas", "dossier"),
                     c.button((978, 594, 115, 34), "Dica", "world_hint")]
         return buttons
+
+    def action_label(self, button):
+        action, key = button.value
+        if action == "talk":
+            return "Conversar com " + button.text
+        selected = self.c.data["selected_items"]
+        if selected:
+            return "Usar " + " + ".join(ITEMS[k][0] for k in selected) + " em " + button.text
+        done = (OBJECTS[key]["puzzle"] or key) in self.c.data["flags"]
+        return ("Reexaminar: " if done else "Examinar: ") + button.text
+
+    def draw_tooltip(self, text, anchor, width=420):
+        g = self.g
+        lines = wrap_text(text, g.fonts.small, width - 24)
+        height = len(lines) * (g.fonts.small.get_height() + 5) + 19
+        rect = pygame.Rect(0, 0, width, height)
+        rect.midbottom = (anchor.centerx, anchor.top - 8)
+        rect.clamp_ip(pygame.Rect(8, 159, 1104, 471))
+        pygame.draw.rect(g.screen, (20, 29, 30), rect, border_radius=4)
+        pygame.draw.rect(g.screen, MUTED, rect, 1, border_radius=4)
+        draw_text(g.screen, text, g.fonts.small, TEXT, rect.inflate(-24, -16))
+        return rect
 
     def note_buttons(self):
         c, d = self.c, self.c.data
@@ -236,6 +261,17 @@ class CampaignVisual:
             pygame.draw.rect(g.screen, GOOD if button.selected else MUTED, button.rect, 2 if button.selected else 1, border_radius=4)
             self.draw_prop(key, pygame.Rect(button.rect.x + 40, 640, 40, 31))
             draw_text(g.screen, ITEMS[key][0], self.item_font, TEXT, pygame.Rect(button.rect.x + 3, 672, 112, 37), line_spacing=0, align="center")
+        page = c.data["page"] if c.data["view"] == "explore" else 0
+        pages = max(1, (len(c.data["inventory"]) + 5) // 6)
+        draw_text(g.screen, f"Itens {page + 1}/{pages}", g.fonts.small, MUTED, pygame.Rect(933, 662, 160, 28), align="center")
+
+    def draw_inventory_tooltip(self):
+        for button in self.inventory_buttons():
+            if isinstance(button.value, tuple) and button.rect.collidepoint(pygame.mouse.get_pos()):
+                key = button.value[1]
+                name, description = ITEMS[key]
+                status = "Selecionado" if button.selected else "No inventario"
+                self.draw_tooltip(f"{name} / {status}. {description}", button.rect)
 
     def draw_control(self, button):
         g = self.g
@@ -273,19 +309,19 @@ class CampaignVisual:
         selected = ", ".join(ITEMS[k][0] for k in d["selected_items"])
         draw_text(g.screen, g.message or ("Em maos: " + selected if selected else OBJECTIVES[d["chapter"]]), g.fonts.small, TEXT, pygame.Rect(25, 560, 1070, 31))
         if d["selected_items"]:
-            draw_text(g.screen, selected, g.fonts.small, ACCENT_2, pygame.Rect(25, 599, 545, 28))
+            draw_text(g.screen, selected, self.item_font, ACCENT_2, pygame.Rect(187, 594, 333, 36), line_spacing=0)
         self.draw_inventory()
         for button in buttons:
             if isinstance(button.value, tuple) and button.value[0] in {"object", "talk"}:
                 if button.rect.collidepoint(pygame.mouse.get_pos()):
                     pygame.draw.rect(g.screen, GOOD, button.rect, 2, border_radius=3)
-                    label = g.fonts.small.render(button.text, True, TEXT)
-                    r = label.get_rect(midbottom=(button.rect.centerx, button.rect.y - 4)).inflate(14, 8)
-                    r.clamp_ip(pygame.Rect(6, 159, 1108, 383))
-                    pygame.draw.rect(g.screen, (20, 29, 30), r, border_radius=3)
-                    g.screen.blit(label, label.get_rect(center=r.center))
+                    self.draw_tooltip(self.action_label(button), button.rect)
             elif not (isinstance(button.value, tuple) and button.value[0] == "item") and button.value not in {"previous", "next"}:
                 self.draw_control(button)
+        self.draw_inventory_tooltip()
+        for button in buttons:
+            if button.value == "clear_items" and button.rect.collidepoint(pygame.mouse.get_pos()):
+                self.draw_tooltip("Cancelar selecao", button.rect, 180)
 
     def draw_note(self):
         c, g, d = self.c, self.g, self.c.data
@@ -303,6 +339,7 @@ class CampaignVisual:
         for button in self.note_buttons():
             if not (isinstance(button.value, tuple) and button.value[0] == "item"):
                 self.draw_control(button)
+        self.draw_inventory_tooltip()
 
     def draw_puzzle_button(self, button):
         d, g = self.c.data, self.g

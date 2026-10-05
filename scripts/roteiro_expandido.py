@@ -23,10 +23,21 @@ PROLOGUE = [
 ]
 # The previous dialogue remains available only for existing saves.
 BRIEFING = [
-    ("Antes de comecar", "Esta historia aborda desaparecimento, manipulacao psicologica e lembrancas dolorosas. Este jogo apresenta um capitulo de uma investigacao maior; nem todas as perguntas serao respondidas aqui."),
-    ("O desaparecimento de Celine", "Celine desapareceu. A equipe foi chamada para investigar os vestigios deixados em seu escritorio. Ainda nao ha elementos suficientes para afirmar como ou por que ela partiu. Cassie tambem busca respostas sobre os Masters, um grupo cujas intencoes permanecem incertas."),
-    ("A equipe", "Cinco perspectivas sobre o mesmo caso. Suas especialidades ajudam a interpretar os registros, mas nenhuma impressao substitui uma prova."),
-    ("A primeira tarefa", "Reconstruir os ultimos acontecimentos conhecidos e investigar o desaparecimento de Celine. Antes de visitar o escritorio, Cassie procura Daniel Redding para ouvi-lo sobre os Masters. As perguntas sobre Lorelai, ligadas ao passado de Cassie, ainda permanecem abertas."),
+    ("Antes de comecar", "Esta historia aborda desaparecimento e manipulacao psicologica. Este e o primeiro capitulo de um caso que continua em aberto."),
+    ("Celine desapareceu", "Voce e Cassie, uma investigadora que interpreta comportamentos. Sua missao: reconstruir os ultimos passos de Celine Delacroix e descobrir o que aconteceu com ela."),
+    ("Voce nao esta sozinha", "Os Naturais sao sua equipe. Cada um percebe algo diferente; juntos, voces confrontam suspeitas com provas."),
+    ("Antes do escritorio", "Daniel Redding tem informacoes sobre os Masters, um grupo perigoso que Cassie investiga. Primeiro, ouvir seu aviso. Depois, procurar vestigios no escritorio de Celine."),
+]
+
+# Each entry contains only the context available on entering that chapter.
+CASE_SUMMARIES = [
+    "Voce acompanha Cassie, integrante dos Naturais. Celine Delacroix desapareceu e a equipe precisa reconstruir seus ultimos passos. Antes de ir ao escritorio, Cassie ouve Daniel Redding sobre os Masters, grupo que tambem investiga. Uma ligacao entre os dois casos ainda nao esta comprovada. Lorelai pertence ao passado de Cassie; perguntas pessoais nao devem substituir provas.",
+    "Celine desapareceu. Cassie e os Naturais investigam o escritorio para entender o que aconteceu antes de sua saida. O aviso de Redding trouxe uma suspeita sobre os Masters, mas ainda nao prova uma ligacao. O caso comeca pelos objetos e registros deixados por Celine, nao por uma acusacao.",
+    "A investigacao do escritorio trouxe registros que precisam ser comparados com depoimentos e imagens. Um envelope dirigido a Cassie tornou o caso mais pessoal. Agora a equipe precisa separar o que as pessoas afirmam daquilo que os horarios e as cameras permitem comprovar.",
+    "O envelope dirigido a Cassie contem uma mensagem organizada em padroes. A equipe busca compreender seu conteudo e aonde ele conduz. Resolver o codigo ajuda a seguir o rastro, mas nao revela, por si so, quem enviou a mensagem.",
+    "As pistas do envelope levaram a Mercer House. A mensagem se dirige a Cassie e menciona seu passado. A equipe explora a propriedade para entender por que foi conduzida ate ali. Uma referencia pessoal pode ser uma tentativa de manipulacao, nao uma prova.",
+    "Os ambientes de Mercer House conduziram a equipe a novos testes. Gravacoes e registros apresentam versoes dos acontecimentos. Cassie precisa comparar essas versoes com as evidencias ja reunidas e reconstruir a ordem dos fatos antes de aceitar uma explicacao.",
+    "A investigacao chegou aos registros finais ligados ao nome de Lorelai. Fotografias e documentos precisam ser verificados. A pergunta agora e o que as provas permitem concluir sobre a mensagem dirigida a Cassie. O nome de uma pessoa em um documento nao comprova sua participacao.",
 ]
 TEAM_PROFILES = [
     ("cassie", "Cassie", "Perfilacao", "Reconstroi comportamentos e motivacoes."),
@@ -35,20 +46,39 @@ TEAM_PROFILES = [
     ("lia", "Lia", "Contradicoes", "Confronta falas e identifica mentiras."),
     ("sloane", "Sloane", "Padroes", "Compara numeros, horarios e probabilidades."),
 ]
-OPENING = BRIEFING + PROLOGUE[:6]
+# Keep dialogue positions stable for saved games already in the opening.
+OPENING = BRIEFING + [
+    ("Cassie", "Como os Masters escolhem suas vitimas?"),
+    ("Daniel Redding", "Eles procuram padroes, Cassie."),
+    ("Cassie", "E padroes deixam rastros."),
+    ("Daniel Redding", "Alguns rastros sao deixados para voce encontrar."),
+    ("Cassie", "Querem conduzir nossa investigacao?"),
+    ("Daniel Redding", "Talvez ja tenham escolhido o caminho por voce."),
+]
 EPILOGUE = [
     ("Dean", "Eles queriam que voce confundisse uma coincidencia com uma causa."),
-    ("Cassie", "E queriam que eu escolhesse a resposta mais pessoal antes de escolher a mais provavel."),
+    ("Cassie", "Queriam que meus sentimentos escolhessem a resposta."),
     ("Lia", "Mentiras funcionam melhor quando carregam uma parte verdadeira."),
     ("Michael", "E medo funciona melhor quando a pessoa ja sabe onde doi."),
     ("Sloane", "Os numeros eram consistentes. A historia construida em volta deles, nem sempre."),
-    ("Cassie", "Celine nao foi a chave. O caso dela foi a porta que alguem aproveitou para deixar aberta. O alvo era eu."),
+    ("Cassie", "Usaram o caso de Celine para chegar ate mim."),
     ("Cassie", "O nome de Lorelai continua aqui. Mas um nome nao e uma resposta. Ainda nao."),
-    ("Continua", "A equipe encerra esta etapa com uma conclusao, nao com todas as respostas. O destino de Celine, a autoria da mensagem e o papel de Lorelai permanecem em aberto. A investigacao continua."),
+    ("Continua", "Celine continua desaparecida. A autoria da mensagem e o papel de Lorelai ainda sao incertos. A investigacao continua."),
 ]
 DIALOGUES = {"opening": OPENING, "prologue": PROLOGUE, "epilogue": EPILOGUE}
 CHAPTERS = ["O aviso de Redding", "O escritorio de Celine", "A testemunha e as cameras",
             "O codigo que escolhe Cassie", "Mercer House", "O jogo dos Masters", "O nome de Lorelai"]
+
+# Shown only after the corresponding chapter has been completed.
+CHAPTER_RECAPS = [
+    "O aviso de Redding levanta suspeitas, mas nao explica o desaparecimento de Celine.",
+    "Celine planejou sair; um envelope para Cassie apareceu depois.",
+    "A testemunha mentiu sobre a ligacao; as cameras registraram um mensageiro ainda nao identificado.",
+    "A mensagem aponta para Mercer House e para o passado de Cassie.",
+    "Os mecanismos da casa revelaram o caminho para novos registros no porao.",
+    "Os horarios confirmam: o mensageiro chegou depois da saida de Celine.",
+    "Os Masters usaram o caso de Celine para alcancar Cassie, mas o destino de Celine permanece incerto.",
+]
 
 # Prefixos evitam mudar evidencias dos salvamentos da campanha anterior.
 EVIDENCE_DATA = {
@@ -263,12 +293,12 @@ room("transmission", "Terminal de transmissao", 6, "analise", "transmission")
 
 OBJECTIVES = [
     "Examinar a sala e registrar o aviso antes de reunir a equipe.",
-    "Reconstituir a saida de Celine e investigar o envelope que apareceu depois.",
-    "Confrontar a testemunha e recuperar a janela de insercao nas cameras.",
-    "Abrir o envelope, combinar as fotografias e confirmar o destino.",
-    "Explorar Mercer House e abrir os tres mecanismos do porao.",
-    "Verificar as gravacoes e reconstruir a cronologia sem inventar identidades.",
-    "Validar fotografias, consultar os documentos e sustentar a deducao final.",
+    "Descobrir o que aconteceu antes de Celine sair do escritorio.",
+    "Comparar o depoimento com os registros e descobrir quando o envelope chegou.",
+    "Decifrar a mensagem do envelope e descobrir para onde ela aponta.",
+    "Investigar Mercer House e descobrir o que os mecanismos do porao escondem.",
+    "Comparar as gravacoes e colocar os acontecimentos na ordem correta.",
+    "Verificar fotos e documentos para explicar por que a mensagem foi dirigida a Cassie.",
 ]
 
 HOTSPOT_POSITIONS = {

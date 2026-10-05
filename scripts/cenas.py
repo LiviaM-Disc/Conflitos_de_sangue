@@ -1010,6 +1010,12 @@ class Game:
         return True
 
     def request_quit(self) -> None:
+        if not self.running:
+            return
+        if self.state == "campaign" and self.player_screens.store:
+            if self.player_screens.finish_on_close():
+                self.running = False
+            return
         if self.save_store and self.state != "menu" and not self.save_progress():
             self.paused = True
             self.show_clues = False

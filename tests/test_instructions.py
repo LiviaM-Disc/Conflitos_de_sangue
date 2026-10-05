@@ -81,3 +81,39 @@ class InstructionsTests(unittest.TestCase):
         self.assertEqual(self.game.campaign_data["line"], 0)
         self.key(pygame.K_ESCAPE)
         self.assertEqual(self.game.campaign_data["line"], 0)
+
+    def test_case_summary_preserves_evidence_items_and_score(self):
+        from scripts.roteiro_expandido import CASE_SUMMARIES, BRIEFING
+        self.assertEqual(len(CASE_SUMMARIES), 7)
+        self.assertEqual(len(BRIEFING), 4)
+        campaign = self.game.campaign
+        data = self.game.campaign_data
+        for chapter in range(7):
+            data.update(chapter=chapter, view="explore", inventory=["badge"], selected_items=["badge"])
+            before = (list(data["flags"]), self.game.investigation.score)
+            campaign.activate("case_summary")
+            self.assertEqual(data["note_title"], "Resumo do caso")
+            self.assertEqual(data["view"], "note")
+            self.game.draw()
+            campaign.activate("note_back")
+            self.assertEqual(data["view"], "explore")
+            self.assertEqual(data["selected_items"], ["badge"])
+            self.assertEqual((data["flags"], self.game.investigation.score), before)
+
+    def test_item_actions_and_tooltip_fit(self):
+        from scripts.roteiro_expandido import ITEMS, BRIEFING
+        campaign = self.game.campaign
+        data = self.game.campaign_data
+        data.update(view="explore", chapter=1, room="office", inventory=["badge"], selected_items=["badge"])
+        button = campaign.button((1035, 310, 60, 87), "Porta", ("object", "maintenance_door"))
+        self.assertIn("Usar Cracha antigo em Porta", campaign.visual.action_label(button))
+        campaign.activate("clear_items")
+        self.assertEqual(data["selected_items"], [])
+        self.assertEqual(data["inventory"], ["badge"])
+        self.assertEqual(campaign.visual.action_label(button), "Examinar: Porta")
+        for name, description in ITEMS.values():
+            rect = campaign.visual.draw_tooltip(name + ". " + description, button.rect)
+            self.assertTrue(pygame.Rect(0, 0, 1120, 720).contains(rect))
+        for _, text in BRIEFING:
+            lines = wrap_text(text, self.game.fonts.body, 1000)
+            self.assertLessEqual(len(lines) * (self.game.fonts.body.get_height() + 8), 145)

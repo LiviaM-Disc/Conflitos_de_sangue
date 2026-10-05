@@ -123,6 +123,36 @@ class PlayerScreens:
         except Exception:
             self.notice = "Nao foi possivel ler o banco. Tente atualizar novamente."
 
+    def finish_on_close(self):
+        g = self.g
+        g.instructions.active = False
+        g.show_clues = False
+        g.confirm_new = False
+        if not g.player_name:
+            self.ask_name(resume=True)
+            self.notice = "Informe o nome para registrar os pontos antes de fechar."
+            return False
+        before = deepcopy(g.campaign_data)
+        if g.campaign_data["view"] not in {"report", "ended"}:
+            g.campaign_data["view"] = "ended"
+        # Persist the frozen score before the database write; retries use the same run ID.
+        if g.save_store and not g.save_progress():
+            g.campaign_data = before
+            self.active = ""
+            g.paused = True
+            return False
+        if not self.finish():
+            g.paused = False
+            self.active, self.page = "ranking", 0
+            self.refresh()
+            self.notice = "Nao foi possivel registrar os pontos. Resultado preservado; tente Atualizar e registrar ou fechar novamente."
+            return False
+        if g.save_store and not g.save_progress():
+            self.active = ""
+            g.paused = True
+            return False
+        return True
+
     def buttons(self):
         if self.active == "end_confirm":
             return [Button(pygame.Rect(170, 510, 300, 52), "Cancelar", "back"),

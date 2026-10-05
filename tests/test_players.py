@@ -4,6 +4,7 @@ os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
+from copy import deepcopy
 from unittest.mock import Mock, patch
 import pygame
 from scripts.cenas import Game
@@ -164,3 +165,82 @@ class PlayerFlowTests(unittest.TestCase):
         self.g.player_screens.name = "W"*24
         self.assertLessEqual(self.g.fonts.h2.size("W"*24 + "|")[0], 576)
         self.g.draw()
+
+    def test_close_registers_current_score_once_and_freezes_saved_game(self):
+        self.g.start_game(player_name="Ana")
+        self.g.campaign_data.update(chapter=3, room="lab", view="explore")
+        self.g.investigation.score = 85
+        self.g.investigation.mistakes = 3
+        self.g.request_quit()
+        self.assertFalse(self.g.running)
+        self.store.record.assert_called_once_with(self.g.run_id, "Ana", 85, 3, True, completed=False, phase=3)
+        saved = SaveStore(self.path).load()["progress"]
+        self.assertEqual(saved["campaign_data"]["view"], "ended")
+        self.assertTrue(saved["result_saved"])
+        self.g.request_quit()
+        self.assertEqual(self.store.record.call_count, 1)
+
+    def test_close_database_failure_keeps_pending_result_for_retry(self):
+        self.g.start_game(player_name="Ana")
+        self.g.investigation.score = 35
+        self.store.record.side_effect = OSError("locked")
+        self.g.request_quit()
+        self.assertTrue(self.g.running)
+        self.assertEqual(self.g.player_screens.active, "ranking")
+        self.assertEqual(SaveStore(self.path).load()["progress"]["campaign_data"]["view"], "ended")
+        first = self.store.record.call_args
+        self.store.record.side_effect = None
+        self.g.request_quit()
+        self.assertFalse(self.g.running)
+        self.assertEqual(first, self.store.record.call_args)
+
+    def test_close_local_failure_does_not_record_or_end_attempt(self):
+        self.g.start_game(player_name="Ana")
+        before = deepcopy(self.g.campaign_data)
+        with patch.object(self.g.save_store, "write", side_effect=OSError("full")):
+            self.g.request_quit()
+        self.assertTrue(self.g.running)
+        self.assertEqual(self.g.campaign_data, before)
+        self.store.record.assert_not_called()
+
+    def test_close_menu_preserves_paused_game_and_completed_run_stays_completed(self):
+        self.g.start_game(player_name="Ana")
+        self.g.save_progress()
+        self.g.reset_to_menu()
+        self.g.request_quit()
+        self.store.record.assert_not_called()
+        self.g.running = True
+        self.g.continue_game()
+        self.g.campaign_data.update(chapter=7, room="final_chamber", view="report")
+        self.g.request_quit()
+        self.assertTrue(self.store.record.call_args.kwargs["completed"])
+
+    def test_close_after_final_save_failure_does_not_resubmit_result(self):
+        self.g.start_game(player_name="Ana")
+        write = self.g.save_store.write
+        calls = 0
+
+        def fail_second_write(data):
+            nonlocal calls
+            calls += 1
+            if calls == 2:
+                raise OSError("disk full")
+            return write(data)
+
+        with patch.object(self.g.save_store, "write", side_effect=fail_second_write):
+            self.g.request_quit()
+        self.assertTrue(self.g.running)
+        self.assertTrue(self.g.result_saved)
+        self.assertEqual(self.g.campaign_data["view"], "ended")
+        self.g.request_quit()
+        self.assertFalse(self.g.running)
+        self.store.record.assert_called_once()
+
+    def test_close_unnamed_legacy_game_requests_name_without_losing_score(self):
+        self.g.start_game()
+        self.g.investigation.score = 25
+        self.g.request_quit()
+        self.assertTrue(self.g.running)
+        self.assertEqual(self.g.player_screens.active, "name")
+        self.assertEqual(self.g.investigation.score, 25)
+        self.store.record.assert_not_called()

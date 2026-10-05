@@ -58,6 +58,7 @@ class ExpandedCampaignTests(unittest.TestCase):
             self.assertTrue(all(font.size(line)[0] <= 112 for line in lines), key)
 
     def test_phase_completion_notice_survives_save_and_keeps_score(self):
+        from scripts.roteiro_expandido import CHAPTER_RECAPS, OBJECTIVES
         destinations = ["reception", "interview", "lab", "garden", "hidden", "final_chamber", "final_chamber"]
         with tempfile.TemporaryDirectory() as folder:
             store = SaveStore(Path(folder) / "transition.json")
@@ -69,6 +70,9 @@ class ExpandedCampaignTests(unittest.TestCase):
                 expected = "Prologo concluido" if phase == 1 else f"Fase {phase-1} concluida!"
                 self.assertEqual(self.c.data["note_title"], expected)
                 self.assertIn("135 pontos", self.c.data["note_text"])
+                self.assertIn(CHAPTER_RECAPS[phase - 1], self.c.data["note_text"])
+                if phase < 7:
+                    self.assertIn(OBJECTIVES[phase], self.c.data["note_text"])
                 self.assertEqual(self.game.investigation.score, 135)
                 self.game.draw()
                 store.write(snapshot(self.game))
@@ -80,6 +84,24 @@ class ExpandedCampaignTests(unittest.TestCase):
                 if phase == 7:
                     self.assertEqual(self.c.data["dialogue"], "epilogue")
                     self.assertEqual(self.c.data["line"], 0)
+
+    def test_objectives_fit_header_without_wrapping(self):
+        from scripts.roteiro_expandido import OBJECTIVES
+        for objective in OBJECTIVES:
+            self.assertLessEqual(self.game.fonts.small.size(objective)[0], 1050)
+
+    def test_short_narrative_keeps_saved_dialogue_positions(self):
+        from scripts.roteiro_expandido import CHAPTER_RECAPS, CASE_SUMMARIES
+        self.assertEqual(len(BRIEFING), 4)
+        self.assertEqual(len(OPENING), 10)
+        self.assertEqual(len(EPILOGUE), 8)
+        for _, text in BRIEFING:
+            self.assertLessEqual(len(text.split()), 30)
+        for _, text in OPENING[4:]:
+            self.assertLessEqual(len(text.split()), 12)
+        for recap in CHAPTER_RECAPS:
+            self.assertLessEqual(len(recap.split()), 22)
+        self.assertEqual(len(CASE_SUMMARIES), 7)
 
     def test_extended_prologue_renders_and_saves_every_line(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -327,6 +349,54 @@ class ExpandedCampaignTests(unittest.TestCase):
         self.choose_from_bar("carbon")
         self.inspect("lamp")
         self.assertEqual(self.c.data["puzzle"], "writing")
+
+    def test_examining_unrelated_object_preserves_item_for_use(self):
+        self.c.data.update(chapter=1, room="office", view="explore",
+                           inventory=["carbon", "badge"], selected_items=["carbon", "badge"])
+        self.inspect("chair")
+        self.assertEqual(self.c.data["selected_items"], ["carbon", "badge"])
+        self.inspect("lamp")
+        self.assertEqual(self.c.data["puzzle"], "writing")
+        self.assertEqual(self.c.data["selected_items"], ["badge"])
+
+    def test_third_item_replaces_pair_in_both_inventory_views(self):
+        for view in ("explore", "inventory"):
+            self.c.data.update(chapter=1, room="office", view=view, page=0,
+                               inventory=["carbon", "badge", "clip"], selected_items=["carbon", "badge"])
+            self.click(("item", "clip"))
+            self.assertEqual(self.c.data["selected_items"], ["clip"])
+            self.c.activate(("item", "magnetic_tool"))
+            self.assertEqual(self.c.data["selected_items"], ["clip"])
+
+    def test_transparency_alone_selected_works_with_photo_in_bag(self):
+        for selected in (["overlay"], ["folded_photo"], ["overlay", "folded_photo"]):
+            self.c.data.update(chapter=3, room="evidence", view="explore", page=0,
+                               inventory=["overlay", "folded_photo"], selected_items=list(selected))
+            score = self.game.investigation.score
+            self.click(("object", "photo_table"))
+            self.assertEqual(self.c.data["view"], "puzzle")
+            self.assertEqual(self.c.data["puzzle"], "overlay")
+            self.assertFalse(self.c.has("x_address"))
+            self.assertEqual(self.game.investigation.score, score)
+
+    def test_light_table_still_requires_photo_and_explicit_item_selection(self):
+        for inventory, selected in ((["overlay"], ["overlay"]),
+                                    (["overlay", "folded_photo"], [])):
+            self.c.data.update(chapter=3, room="evidence", view="explore", page=0,
+                               inventory=inventory, selected_items=selected, puzzle="")
+            self.click(("object", "photo_table"))
+            self.assertEqual(self.c.data["view"], "note")
+            self.assertFalse(self.c.has("x_address"))
+
+    def test_combination_returns_to_original_view(self):
+        for view in ("explore", "inventory"):
+            for pair in (["magnet", "strip"], ["carbon", "badge"]):
+                self.c.data.update(chapter=4, room="kitchen", view=view, page=0,
+                                   inventory=list(pair), selected_items=list(pair))
+                self.c.combine()
+                self.assertEqual(self.c.data["note_return"], view)
+                self.c.activate("note_back")
+                self.assertEqual(self.c.data["view"], view)
 
     def test_complete_six_phases_with_inventory_and_backtracking(self):
         self.complete_office()

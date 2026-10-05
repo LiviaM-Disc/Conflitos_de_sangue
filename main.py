@@ -23,9 +23,9 @@ def main() -> None:
         dt = clock.tick(FPS) / 1000
         events = pygame.event.get()
 
-        for event in events:
-            if event.type == pygame.QUIT:
-                game.request_quit()
+        if any(event.type == pygame.QUIT for event in events):
+            game.request_quit()
+            events = []
 
         if not game.running:
             break

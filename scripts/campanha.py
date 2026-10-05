@@ -12,7 +12,8 @@ from scripts.instrucoes import PUZZLE_INSTRUCTIONS
 from scripts.campanha_visual import CampaignVisual, COMPANIONS, CONVERSATIONS
 from scripts.roteiro_expandido import (PROLOGUE, EPILOGUE, CHAPTERS, ITEMS, OBJECTS,
                                       PUZZLES, ROOMS, OBJECTIVES, GRID_ROWS, EVIDENCE_DATA, HOTSPOT_POSITIONS,
-                                      GUIDED_STEPS, PROOF_OPTIONS, PUZZLE_HINTS, DIALOGUES, BRIEFING)
+                                      GUIDED_STEPS, PROOF_OPTIONS, PUZZLE_HINTS, DIALOGUES, BRIEFING,
+                                      CASE_SUMMARIES, CHAPTER_RECAPS)
 
 
 EXPOSURE_LIMIT = 5
@@ -189,11 +190,12 @@ class ExpandedCampaign:
         self.checkpoint()
         title = "Prologo concluido" if previous_phase == 0 else f"Fase {previous_phase} concluida!"
         score = f"Pontuacao atual: {self.game.investigation.score} pontos."
+        recap = CHAPTER_RECAPS[previous_phase]
         if phase == 7:
             self.data.update(view="dialogue", dialogue="epilogue", line=0)
-            self.note(title, "Voce concluiu as seis fases desta investigacao.\n\n" + score + "\n\nContinue para acompanhar o epilogo.", back="dialogue")
+            self.note(title, recap + "\n\n" + score + "\n\nContinue para acompanhar o epilogo.", back="dialogue")
         else:
-            self.note(title, score + f"\n\nProxima etapa: Fase {phase} - " + CHAPTERS[phase] + ".\n\n" + OBJECTIVES[phase])
+            self.note(title, recap + "\n\nAgora: " + OBJECTIVES[phase] + "\n\n" + score)
 
     def available_rooms(self):
         phase = self.data["map_phase"]
@@ -230,7 +232,12 @@ class ExpandedCampaign:
             else:
                 self.note(content["label"], "Ainda falta uma descoberta anterior. " + content["text"])
             return
-        if content["use"] and not set(content["use"]).issubset(self.data["selected_items"]):
+        selected = set(self.data["selected_items"])
+        ready_to_use = set(content["use"]).issubset(selected)
+        # The light table supplies the workspace; the companion photo can stay in the bag.
+        if key == "photo_table" and selected.intersection(content["use"]):
+            ready_to_use = all(item in self.data["inventory"] for item in content["use"])
+        if content["use"] and not ready_to_use:
             if key == "drawer" and any(k in self.data["selected_items"] for k in ("key471", "key714")):
                 self.penalize("Esta chave nao abre a gaveta. Confira a etiqueta e tente outra.")
                 return
@@ -243,7 +250,9 @@ class ExpandedCampaign:
             self.data.update(view="help", page=0)
             return
         self.reward(content)
-        self.data["selected_items"] = []
+        if content["use"]:
+            self.data["selected_items"] = [item for item in self.data["selected_items"]
+                                           if item not in content["use"]]
         if content["puzzle"]:
             self.open_puzzle(content["puzzle"])
         else:
@@ -327,18 +336,19 @@ class ExpandedCampaign:
 
     def combine(self):
         selected = set(self.data["selected_items"])
+        back = "explore" if self.data["view"] == "explore" else "inventory"
         if selected == {"magnet", "strip"}:
             for key in selected:
                 self.data["inventory"].remove(key)
             self.reward({"items": ["magnetic_tool"]})
             self.flag("magnetic_tool")
             self.data["selected_items"] = []
-            self.note("Ferramenta magnetica", "O ima preso a tira alcanca objetos na grelha da cozinha.", "inventory")
+            self.note("Ferramenta magnetica", "O ima preso a tira alcanca objetos na grelha da cozinha.", back)
         elif selected == {"folded_photo", "overlay"}:
             if self.has("overlay"):
-                self.note("Transparencia alinhada", "As janelas deixam visiveis as letras de MERCER HOUSE. A mesa de luz na sala de evidencias permite conferir o endereco.", "inventory")
+                self.note("Transparencia alinhada", "As janelas deixam visiveis as letras de MERCER HOUSE. A mesa de luz na sala de evidencias permite conferir o endereco.", back)
         else:
-            self.note("Objetos separados", "Os encaixes destes objetos nao combinam.", "inventory")
+            self.note("Objetos separados", "Os encaixes destes objetos nao combinam.", back)
 
     def help(self, person):
         chapter = self.data["chapter"]
@@ -376,7 +386,7 @@ class ExpandedCampaign:
         elif view == "inventory":
             for i, key in enumerate(d["inventory"][d["page"] * 8:d["page"] * 8 + 8]):
                 selected = key in d["selected_items"]
-                buttons.append(self.button((50 + i % 2 * 520, 172 + i // 2 * 62, 500, 50), ITEMS[key][0], ("item", key), selected or len(d["selected_items"]) < 2, selected))
+                buttons.append(self.button((50 + i % 2 * 520, 172 + i // 2 * 62, 500, 50), ITEMS[key][0], ("item", key), True, selected))
             buttons += [self.button((50, 630, 160, 48), "Voltar", "back"), self.button((230, 630, 160, 48), "Usar", "back", bool(d["selected_items"])),
                         self.button((410, 630, 160, 48), "Combinar", "combine", len(d["selected_items"]) == 2)]
             buttons += self.page_buttons(len(d["inventory"]), 8)
@@ -470,12 +480,17 @@ class ExpandedCampaign:
             elif action == "phase":
                 d.update(map_phase=key, page=0)
             elif action == "item":
+                if key not in d["inventory"]:
+                    return
                 if key in d["selected_items"]:
                     d["selected_items"].remove(key)
                 elif len(d["selected_items"]) < 2:
                     d["selected_items"].append(key)
+                else:
+                    d["selected_items"] = [key]
                 if d["view"] == "explore":
-                    self.game.set_message(ITEMS[key][1], 10)
+                    selected = ", ".join(ITEMS[item][0] for item in d["selected_items"])
+                    self.game.set_message("Em maos: " + selected if selected else "Nenhum item selecionado.", 4)
             elif action == "consult":
                 self.help(key)
             elif action == "answer":
@@ -499,7 +514,11 @@ class ExpandedCampaign:
             elif action == "field":
                 d["input_field"] = key
             return
-        if value == "world_hint":
+        if value == "case_summary":
+            self.note("Resumo do caso", CASE_SUMMARIES[min(d["chapter"], 6)])
+        elif value == "clear_items":
+            d["selected_items"] = []
+        elif value == "world_hint":
             self.note("Pista para continuar", self.step_label())
         elif value in {"inventory", "map", "help"}:
             d.update(view=value, page=0)
