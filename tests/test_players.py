@@ -105,7 +105,7 @@ class PlayerFlowTests(unittest.TestCase):
         self.assertEqual(self.g.campaign_data["flags"], [])
         self.assertEqual(self.g.player_screens.active, "ranking")
         resumed = Game(self.screen, self.root, self.path, ranking_store=self.store)
-        self.assertEqual(resumed.menu_buttons()[0].text, "Ver resultado")
+        self.assertEqual(resumed.menu_buttons()[0].text, "Nova investigacao")
         resumed.continue_game()
         self.assertEqual(resumed.campaign_data["view"], "ended")
         resumed.draw()
@@ -180,6 +180,22 @@ class PlayerFlowTests(unittest.TestCase):
         self.g.request_quit()
         self.assertEqual(self.store.record.call_count, 1)
 
+    def test_reopening_ended_game_offers_new_game_not_continue(self):
+        self.g.start_game(player_name="Ana")
+        self.g.request_quit()
+        reopened = Game(self.screen, self.root, self.path, ranking_store=self.store)
+        self.assertEqual([b.text for b in reopened.menu_buttons()], ["Nova investigacao", "Ranking"])
+        reopened.draw()
+        reopened.handle_events([pygame.event.Event(pygame.KEYDOWN, key=pygame.K_RETURN)])
+        self.assertEqual(reopened.state, "menu")
+        self.assertEqual(reopened.player_screens.active, "name")
+        self.assertFalse(reopened.confirm_new)
+        reopened.player_screens.active = ""
+        button = reopened.menu_buttons()[0]
+        reopened.handle_events([pygame.event.Event(pygame.MOUSEBUTTONDOWN, button=1, pos=button.rect.center)])
+        self.assertEqual(reopened.player_screens.active, "name")
+        self.store.record.assert_called_once()
+
     def test_close_database_failure_keeps_pending_result_for_retry(self):
         self.g.start_game(player_name="Ana")
         self.g.investigation.score = 35
@@ -203,17 +219,28 @@ class PlayerFlowTests(unittest.TestCase):
         self.assertEqual(self.g.campaign_data, before)
         self.store.record.assert_not_called()
 
-    def test_close_menu_preserves_paused_game_and_completed_run_stays_completed(self):
+    def test_close_menu_registers_saved_game(self):
         self.g.start_game(player_name="Ana")
+        self.g.investigation.score = 275
         self.g.save_progress()
         self.g.reset_to_menu()
-        self.g.request_quit()
-        self.store.record.assert_not_called()
-        self.g.running = True
-        self.g.continue_game()
+        self.g.handle_events([pygame.event.Event(pygame.QUIT)])
+        self.store.record.assert_called_once_with(self.g.run_id, "Ana", 275, 0, True, completed=False, phase=0)
+        self.assertFalse(self.g.running)
+
+    def test_close_completed_run_stays_completed(self):
+        self.g.start_game(player_name="Ana")
         self.g.campaign_data.update(chapter=7, room="final_chamber", view="report")
         self.g.request_quit()
         self.assertTrue(self.store.record.call_args.kwargs["completed"])
+
+    def test_quit_event_has_priority_over_help_and_other_input(self):
+        self.g.start_game(player_name="Ana")
+        self.g.instructions.open()
+        self.g.handle_events([pygame.event.Event(pygame.KEYDOWN, key=pygame.K_RETURN),
+                              pygame.event.Event(pygame.QUIT)])
+        self.assertFalse(self.g.running)
+        self.store.record.assert_called_once()
 
     def test_close_after_final_save_failure_does_not_resubmit_result(self):
         self.g.start_game(player_name="Ana")

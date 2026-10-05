@@ -165,6 +165,9 @@ class Game:
         ]
 
     def handle_events(self, events: list[pygame.event.Event]) -> None:
+        if any(event.type == pygame.QUIT for event in events):
+            self.request_quit()
+            return
         before = (deepcopy(self.office_escape.data) if self.state == "escape_room" else snapshot(self)) if self.save_store and self.state != "menu" else None
         self.dispatch_events(events)
         after = self.office_escape.data if self.state == "escape_room" else snapshot(self)
@@ -259,7 +262,7 @@ class Game:
                         self.player_screens.new_game()
             return
         if event.type == pygame.KEYDOWN and event.key in {pygame.K_RETURN, pygame.K_SPACE}:
-            if self.saved_game:
+            if self.saved_game and not self.saved_run_ended():
                 self.continue_game()
             else:
                 self.player_screens.new_game()
@@ -271,7 +274,7 @@ class Game:
                         self.continue_game()
                     elif button.value == "ranking":
                         self.player_screens.show_ranking()
-                    elif self.saved_game:
+                    elif self.saved_game and not self.saved_run_ended():
                         self.confirm_new = True
                     else:
                         self.player_screens.new_game()
@@ -636,6 +639,9 @@ class Game:
                 chapter = saved["progress"]["campaign_data"]["chapter"]
                 stage = "Prologo" if chapter == 0 else "Epilogo" if chapter == 7 else f"Fase {chapter} de 6"
                 label = f"Roteiro expandido / {stage} / {saved['investigation']['score']} pontos"
+                if self.saved_run_ended():
+                    status = "Registrada no ranking" if saved["progress"]["result_saved"] and saved["progress"]["ranking_eligible"] else "Registrada no historico" if saved["progress"]["result_saved"] else "Registro pendente"
+                    label = f"Partida encerrada / {saved['investigation']['score']} pontos / {status}"
             else:
                 label = "Roteiro anterior / " + label
             draw_text(self.screen, label, self.fonts.small, TEXT, pygame.Rect(180, 644, 760, 30), align="center")
@@ -976,13 +982,16 @@ class Game:
         self.show_clues = False
         self.set_message("")
 
+    def saved_run_ended(self) -> bool:
+        return bool(self.saved_game and self.saved_game["progress"]["state"] == "campaign"
+                    and self.saved_game["progress"]["campaign_data"]["view"] in {"ended", "report"})
+
     def menu_buttons(self) -> list[Button]:
-        if self.saved_game:
-            ended = self.saved_game["progress"]["state"] == "campaign" and self.saved_game["progress"]["campaign_data"]["view"] in {"ended", "report"}
-            return [Button(pygame.Rect(370, 436, 380, 50), "Ver resultado" if ended else "Continuar investigacao", "continue", selected=True),
+        if self.saved_game and not self.saved_run_ended():
+            return [Button(pygame.Rect(370, 436, 380, 50), "Continuar investigacao", "continue", selected=True),
                     Button(pygame.Rect(370, 505, 380, 50), "Nova investigacao", "new"),
                     Button(pygame.Rect(370, 573, 380, 50), "Ranking", "ranking")]
-        return [Button(pygame.Rect(370, 470, 380, 54), "Iniciar investigacao", "start", selected=True),
+        return [Button(pygame.Rect(370, 470, 380, 54), "Nova investigacao" if self.saved_run_ended() else "Iniciar investigacao", "start", selected=True),
                 Button(pygame.Rect(370, 548, 380, 54), "Ranking", "ranking")]
 
     def new_game_buttons(self) -> list[Button]:
@@ -1012,6 +1021,10 @@ class Game:
     def request_quit(self) -> None:
         if not self.running:
             return
+        if (self.state == "menu" and self.player_screens.store and self.saved_game
+                and self.saved_game["progress"]["state"] == "campaign"
+                and not self.saved_game["progress"]["result_saved"]):
+            self.continue_game()
         if self.state == "campaign" and self.player_screens.store:
             if self.player_screens.finish_on_close():
                 self.running = False

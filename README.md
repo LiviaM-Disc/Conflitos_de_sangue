@@ -25,7 +25,8 @@ possivel continuar essa tentativa depois; o menu passa a oferecer Ver resultado.
 Para apenas fazer uma pausa e jogar depois, use **Salvar e voltar ao menu**.
 Fechar a janela durante uma partida tambem encerra a tentativa e registra a
 pontuacao atual no ranking. Se houver falha de gravacao, a janela permanece
-aberta para tentar novamente. Fechar no menu nao encerra uma partida pausada.
+aberta para tentar novamente. Fechar no menu tambem registra e encerra a
+partida salva pendente, mesmo depois de voltar ao menu.
 Encerrar nao concede pontos extras nem marca fases restantes como concluidas.
 Se o banco falhar, o resultado fica pendente e pode ser reenviado sem duplicar.
 

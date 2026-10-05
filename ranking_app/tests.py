@@ -18,6 +18,39 @@ class RankingTests(TestCase):
             with self.assertRaises(ValueError):
                 normalize_name(value)
 
+    def test_window_close_persists_actual_database_result_from_menu(self):
+        import os
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+        os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
+        os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
+        import pygame
+        from scripts.cenas import Game
+        from scripts.salvamento import SaveStore
+        pygame.init()
+        try:
+            with TemporaryDirectory() as folder:
+                path = Path(folder) / "progress.json"
+                game = Game(pygame.display.set_mode((1120, 720)),
+                            Path(__file__).resolve().parents[1], path, ranking_store=self.store)
+                game.start_game(player_name="Fechamento teste")
+                game.campaign_data.update(chapter=4, room="garden", view="explore")
+                game.investigation.score = 275
+                game.reset_to_menu()
+                game.handle_events([pygame.event.Event(pygame.QUIT)])
+                self.assertFalse(game.running)
+                result = GameResult.objects.get(id=game.run_id)
+                self.assertEqual(result.score, 275)
+                self.assertEqual(result.phase, 4)
+                self.assertFalse(result.completed)
+                self.assertEqual(self.store.standings()[0]["score"], 275)
+                self.assertTrue(SaveStore(path).load()["progress"]["result_saved"])
+                reopened = Game(game.screen, game.root, path, ranking_store=self.store)
+                reopened.handle_events([pygame.event.Event(pygame.QUIT)])
+                self.assertEqual(GameResult.objects.count(), 1)
+        finally:
+            pygame.quit()
+
     def test_best_score_ties_and_full_history(self):
         self.store.record(uuid4(), "Ana", 100, 3)
         self.store.record(uuid4(), "Ana", 80, 0)
