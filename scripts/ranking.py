@@ -39,7 +39,7 @@ class DjangoRanking:
         player, _ = Player.objects.get_or_create(identity=name.casefold(), defaults={"nickname": name})
         return player
 
-    def record(self, run_id, name, score, mistakes, ranked=True, completed=True, phase=6):
+    def record(self, run_id, name, score, mistakes, ranked=True, completed=True, phase=6, campaign="classic"):
         self.setup()
         from django.db import transaction
         from ranking_app.models import GameResult
@@ -48,24 +48,26 @@ class DjangoRanking:
             raise ValueError("Resultado invalido.")
         if type(ranked) is not bool:
             raise ValueError("Modalidade invalida.")
-        if type(completed) is not bool or type(phase) is not int or not 0 <= phase <= 6:
+        if campaign not in {"classic", "visual8"}:
+            raise ValueError("Campanha invalida.")
+        if type(completed) is not bool or type(phase) is not int or not 0 <= phase <= (8 if campaign == "visual8" else 6):
             raise ValueError("Etapa do resultado invalida.")
         with transaction.atomic():
             player = self.player(name)
             result, created = GameResult.objects.get_or_create(id=run_id, defaults={
                 "player": player, "score": score, "mistakes": mistakes, "ranked": ranked,
-                "completed": completed, "phase": phase})
-            if not created and (result.player_id, result.score, result.mistakes, result.ranked, result.completed, result.phase) != (player.pk, score, mistakes, ranked, completed, phase):
+                "completed": completed, "phase": phase, "campaign": campaign})
+            if not created and (result.player_id, result.score, result.mistakes, result.ranked, result.completed, result.phase, result.campaign) != (player.pk, score, mistakes, ranked, completed, phase, campaign):
                 raise ValueError("Esta partida ja foi registrada com outro resultado.")
         return result
 
-    def standings(self, name=""):
+    def standings(self, name="", campaign="classic"):
         self.setup()
         from ranking_app.models import GameResult
         rows, seen = [], set()
         # First result per player is their best; stable ties favor fewer errors,
         # then the earliest recorded result. All attempts remain in the database.
-        for result in GameResult.objects.filter(ranked=True).select_related("player"):
+        for result in GameResult.objects.filter(ranked=True, campaign=campaign).select_related("player"):
             if result.player_id in seen:
                 continue
             seen.add(result.player_id)

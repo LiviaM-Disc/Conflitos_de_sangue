@@ -18,6 +18,7 @@ class GameResult(models.Model):
     ranked = models.BooleanField(default=True)
     completed = models.BooleanField(default=True)
     phase = models.PositiveSmallIntegerField(default=6)
+    campaign = models.CharField(max_length=16, default="classic")
     finished_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

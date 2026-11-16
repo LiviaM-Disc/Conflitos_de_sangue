@@ -1,6 +1,32 @@
 # Conflitos de Sangue
 
-Primeira versao jogavel em Python + Pygame baseada no GDD 
+Jogo em Python + Pygame baseado no GDD.
+
+## Versao atual: oito fases visuais
+
+Escolha **Nova investigacao** para jogar a nova campanha. Ela troca a busca
+extensa por salas e as respostas em texto por objetos visiveis, circuitos,
+fotografias, sinais de memoria, ferramentas e captura de sinais. Objetivos
+curtos ficam no alto; a historia complementar esta no botao **O caso**.
+
+As oito fases aumentam a complexidade de forma mecanica: circuitos de 6,
+12 e 16 pecas, memorias de 4, 5 e 7 sinais e capturas com tolerancia menor.
+Ha ajuda visual opcional, pausa sem penalidade de tempo e avaliacao por estrelas.
+
+Os cinco Naturais participam de 17 etapas curtas de investigacao: Cassie
+reconstroi acontecimentos, Lia confronta depoimentos, Michael orienta
+conversas, Dean relaciona intencoes e provas, e Sloane resolve padroes.
+As analises usam cartoes ilustrados e Confirmar. **Equipe** apresenta
+os personagens; **Pistas** permite rever as descobertas.
+
+O ranking tem abas separadas para **Oito fases** e **Campanha anterior**.
+Fechar pelo X registra a tentativa; resultados antigos sao preservados.
+Saves da campanha anterior continuam nela. Saves da aventura visual sao
+atualizados sem alterar pontos ou repetir fases concluidas; as novas analises
+entram nas fases ainda em andamento ou futuras.
+
+Detalhes e controles: `docs/AVENTURA_VISUAL_8_FASES.md`.
+O conteudo abaixo documenta a campanha anterior, mantida por compatibilidade.
 
 ## Campanha expandida
 

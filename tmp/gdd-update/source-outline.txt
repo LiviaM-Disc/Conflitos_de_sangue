@@ -1,0 +1,199 @@
+0 p Conflitos de Sangue 
+1 p 1.Identificação do Projeto
+2 p Nome do Jogo: Conflitos de Sangue 
+3 p Linha Temática: Entretenimento 
+4 p Gênero: Plataforma 2D, Mistério , Ação e RPG
+5 p Modo de jogo : 1 jogador 
+6 p Plataforma: Computador
+7 p Idioma: PT-br
+8 p Tecnologias Principais: Python, Pygame e Django 
+9 p Arquitetura de software: Orientada a Objetos
+10 p Autor(a): Lívia Maria Barros de Sousa 
+11 p 
+12 p Descrição do projeto
+13 p Conflitos de sangue é uma aventura narrativa 2D de mistério, exploração e investigação para computador, desenvolvida em Python com Pygame. O jogo  | será |  uma adaptação interativa de Conflitos de Sangue, quarto livro da série Os Naturais. A narrativa do jogo seguirá a história-base planejada para essa adaptação, preservando seus personagens, os acontecimentos principais e o desfecho, enquanto transforma as descobertas investigativas em ações realizadas pelo jogador. O jogador acompanha Cassie e os demais Naturais em uma investigação envolvendo o desaparecimento de Celine, os Masters e acontecimentos ligados ao passado de Cassie. A experiência combina exploração de cenários, análise de objetos, coleta de pistas, diálogos, interpretação de emoções, detecção de mentiras, perfilação, reconhecimento de padrões e resolução de enigmas. A proposta é fazer com que o jogador sinta que chegou às respostas por observação e raciocínio, e não apenas assistiu aos personagens descobrirem tudo.
+14 p 
+15 p 
+16 tbl Aspecto | Definição  | Título | Conflitos de Sangue  | Base narrativa | Conflitos de Sangue, quarto livro da série Os Naturais | Gênero | Aventura narrativa, mistério, investigação, exploração e puzzles | Estilo de jogo | 2D, focado em investigação e narrativa | Modo | Um jogador | Plataforma | Computador | Tecnologia | Python + Pygame | Estrutura | Prólogo + 5 fases principais + epílogo | Experiência desejada | Curiosidade, tensão e sensação de descoberta pessoal | Público-alvo | A definir no projeto; o material fornecido não estabelece faixa etária ou perfil demográfico.
+17 p 
+18 p Personagens
+19 p Os Naturais formam o núcleo do gameplay. Cada personagem possui uma habilidade investigativa específica, transformada em uma mecânica ou fonte de informação para o jogador.
+20 p 
+21 p 
+22 tbl Personagem | Habilidade | Papel no gameplay | Cassie | Perfilação e reconstrução mental | Compreende vítimas, suspeitos e situações; ajuda a reconstruir sequências de acontecimentos. | Dean | Perfilação criminal | Analisa comportamento e lógica do criminoso; ajuda a testar hipóteses sobre intenção e padrão. | Michael | Leitura de emoções | Percebe alterações emocionais durante conversas e interrogatórios. | Lia | Detecção de mentiras | Indica que uma fala pode ser falsa; o jogador ainda precisa descobrir por que a pessoa mentiu. | Sloane | Análise de padrões | Trabalha com números, datas, códigos, estatísticas e padrões; conduz puzzles lógicos. | Celine Delacroix | Elemento central do caso | Seu desaparecimento aproxima a investigação da própria equipe | Daniel Redding | Figura do prólogo | Introduz diálogos, escolhas e informações ligadas aos Masters e ao passado de Cassie. | Masters | Ameaça central | Organização perigosa ligada ao conflito principal do planejamento narrativo. | Lorelai | Ligação pessoal com Cassie | Elemento importante das revelações e do peso emocional da conclusão.
+23 p 
+24 p 
+25 p Regra de design: |  As habilidades não devem fornecer a resposta pronta. Elas entregam uma informação parcial. O jogador ainda precisa interpretar o significado daquela informação e relacioná-la às evidências.
+26 p 
+27 p 2. História
+28 p  A história do jogo terá como base Bad Blood, quarto livro da série Os Naturais, conforme definido no planejamento fornecido. A investigação envolve os Masters e se torna pessoal quando o desaparecimento de Celine aproxima o caso da própria equipe. Ao mesmo tempo, acontecimentos relacionados ao passado de Cassie ganham importância crescente. A adaptação não será construída como uma história de caminhos totalmente diferentes. As escolhas afetam desempenho, pontuação, ordem de algumas interações e quantidade de informações obtidas, mas os acontecimentos centrais e o desfecho permanecem vinculados à narrativa-base. O papel do jogador é descobrir e compreender a história por meio da investigação. 
+29 p 
+30 p 2.1 Tema: |  O tema principal é a busca pela verdade em um ambiente de incerteza. Mentiras, emoções, comportamento, memória, padrões e relações pessoais fazem parte da investigação. A tensão aumenta conforme os Naturais percebem que não estão apenas investigando uma ameaça: eles próprios também estão envolvidos e sendo observados. 
+31 p O jogo deve priorizar suspense, curiosidade e pressão psicológica. O clímax é investigativo e emocional, não centrado em combate.
+32 p 
+33 p 3. Progressão da História
+34 p A progressão narrativa foi condensada em cinco fases principais para manter um escopo viável em Pygame sem remover os acontecimentos essenciais descritos no planejamento inicial.
+35 p 
+36 p 
+37 p 
+38 p 
+39 tbl Etapa | Foco narrativo | Mecânica predominante | Prólogo | Daniel Redding e primeiras informações sobre os Masters | Diálogo e escolhas | Fase 1 | Desaparecimento de Celine | Exploração e coleta de pistas | Fase 2 | Mentiras, emoções e contradições | Interrogatório e interpretação | Fase 3 | Mentiras, emoções e contradições | Puzzles numéricos e códigos | Fase 4 | Reconstrução de acontecimentos e sensação de perseguição | Perfilação, hipótese e suspense | Fase 5 | Cassie sem apoio direto e revelações finais | Integração das mecânicas aprendidas | Fase 6 | Cassie sem nenhuma ajuda e revelações. | integração das mecânicas aprendid | Epílogo | Fechamento narrativo e desempenho | Resultado e pontuação
+40 p 
+41 p Prólogo - Daniel Redding
+42 p Fechamento narrativo e desempenho Resultado e pontuação Cassie participa de uma conversa tensa com Daniel Redding. O prólogo apresenta o tom da história e funciona como tutorial de diálogo: o jogador aprende a avançar falas, selecionar respostas e observar informações relevantes sem transformar a abertura em uma explicação longa. 
+43 p 
+44 p Fase 1  | - O desaparecimento de Celine
+45 p  O jogador explora o ambiente, movimenta o personagem e investiga objetos em busca das primeiras evidências. Nem tudo o que pode ser examinado é uma pista verdadeira. A fase já exige atenção desde o início e apresenta a lógica de exploração que será reutilizada mais tarde. 
+46 p 
+47 p Fase 2  | - Mentiras e emoções 
+48 p A investigação avança para conversas e interrogatórios. Lia pode indicar uma mentira e Michael pode perceber alterações emocionais, mas o jogador precisa comparar essas reações às evidências coletadas. Mentir não significa necessariamente ser culpado, o que impede conclusões automáticas. 
+49 p 
+50 p Fase 3 |  - O padrão dos Masters 
+51 p Sloane ganha destaque. Datas, números, códigos e informações anteriores formam puzzles que ajudam a revelar a dimensão da ameaça. Entre os desafios pode existir uma sequência baseada em Fibonacci. Esse puzzle é uma adaptação mecânica criada para o jogo e não é apresentado como acontecimento comprovadamente presente no livro. A dificuldade cresce dentro da própria fase. |  
+52 p 
+53 p Fase 4 |  - Dentro da mente / Caçadores e caçados 
+54 p Cassie e Dean utilizam perfilação para reconstruir uma sequência de acontecimentos. O jogador seleciona e organiza evidências; hipóteses incoerentes geram inconsistências e obrigam uma revisão. Em seguida, a atmosfera fica mais tensa quando a equipe percebe que também está sendo observada. A fase termina em uma armadilha.
+55 p 
+56 p 
+57 p 
+58 p Fase 5 |  - Cassie e os Masters
+59 p  Separada da equipe, Cassie perde temporariamente o apoio direto das habilidades dos outros Naturais. O jogador deve aplicar sozinho aquilo que aprendeu: explorar, observar, identificar contradições, reconhecer padrões, interpretar pistas e construir a dedução final. A fase conduz às revelações relacionadas aos Masters e Lorelai e culmina em uma conclusão emocional e investigativa. 
+60 p 
+61 p 
+62 p 
+63 p 
+64 p 
+65 p Epílogo - Resultado da investigação
+66 p  A investigação contínua apresenta as consequências das descobertas e indica que ainda existem questões sem resposta. O encerramento não resolve toda a história, deixando espaço para uma continuação. O resultado da partida apresenta o desempenho do jogador. 
+67 p 4. Gameplay |  
+68 p Loop principal 
+69 p Explorar -> encontrar pistas -> usar a habilidade adequada -> interpretar -> interrogar -> criar hipótese -> decidir -> avançar.
+70 p 
+71 p 4.1 Objetivos
+72 p 
+73 p 
+74 tbl Tipo | Objetivo | Longo prazo | Concluir a investigação e chegar ao desfecho da história. | Curto prazo | Encontrar pistas, resolver puzzles, perceber contradições, completar interrogatórios e desbloquear a próxima cena. | Desempenho | Obter alta pontuação por investigação correta, atenção e boas deduções.
+75 p 
+76 p 
+77 p 4.2 Habilidades do jogador        
+78 p Observação de detalhes e leitura do ambiente. 
+79 p Memória para recuperar pistas e informações antigas.
+80 p Raciocínio lógico e reconhecimento de padrões.
+81 p Interpretação de diálogos, emoções e contradições.
+82 p Associação entre evidências coletadas em momentos diferentes. 
+83 p Formulação, teste e revisão de hipóteses.
+84 p Controle básico de movimentação e interação.
+85 p 
+86 p 4.3 Mecânicas de jogo
+87 p 
+88 tbl Mecânica | Como funciona | Resultado esperado | Exploração | Movimentação 2D com WASD ou setas; aproximação de objetos  | investigáveis | . | Descoberta de pistas e acesso a novas interações. | Interação | Pressionar E junto a objetos ou personagens.  | Exibe descrição, pista, diálogo ou desafio. | Painel de pistas | TAB abre evidências já encontradas. | Ajuda o jogador a revisar informações antes de deduzir. | Perfilação | Seleção e comparação de evidências para reconstruir comportamento ou acontecimentos. | Hipótese coerente ou necessidade de revisão. | Leitura de emoções | Michael destaca uma reação emocional relevante. | Nova informação para interpretação; não entrega culpa | . | Detecção de mentiras | Lia aponta que uma fala pode ser falsa | O jogador precisa encontrar o motivo e confrontar outras pistas. | Análise de padrões | Números, datas, códigos e sequências formam puzzles. | Desbloqueia novas informações da investigação | Deduções | O jogador conecta evidências e escolhe a hipótese mais sustentada. | Avanço de cena, pontuação ou inconsistência. | Pontuação | Ações corretas somam; deduções sem evidência podem descontar. | Mede o desempenho investigativo
+89 p 
+90 p 
+91 p 4.4 Pistas e itens  | investigáveis
+92 p  O projeto não precisa de power-ups tradicionais. O equivalente funcional são evidências e informações que ampliam o que o jogador pode compreender ou fazer.
+93 p Pistas essenciais: necessárias para a progressão da história.  
+94 p Pistas complementares: acrescentam contexto e podem aumentar a pontuação.  
+95 p Objetos irrelevantes: podem ser examinados para impedir que toda interação indique uma resposta correta. 
+96 p Datas, números e códigos: podem alimentar puzzles de Sloane.  
+97 p Informações de diálogo: podem desbloquear novas perguntas ou deduções. 
+98 p 
+99 p 
+100 p 4.5 Progressão e desafio 
+101 p 
+102 p A dificuldade começa em nível intermediário e aumenta principalmente pela necessidade de relacionar mais informações e pela redução de ajuda explícita. O jogo não deve ficar difícil apenas por esconder respostas ou exigir tentativa e erro.
+103 p 
+104 tbl Etapa | Nível | Fonte de Dificuldade | Prólogo | Introdução ativa | Aprender diálogos e perceber informações importantes. | Fase 1 | Intermediária | Distinguir pistas relevantes de objetos sem importância. | Fase 2 | Intermediária/alta | Distinguir pistas relevantes de objetos sem importância. | Fase 3 | Alta | Resolver padrões, códigos e Fibonacci com complexidade crescente. | Fase 4 | Muito alta | Relacionar evidências de fases anteriores e reconstruir acontecimentos. | Fase 5 | Muito alta  | Aplicar sozinho as mecânicas aprendidas, com menos ajuda da equipe. | Fase 6  | Altíssima | Aplicar sozinho as mecânicas aprendidas, com nenhuma ajuda da equipe.
+105 p 
+106 p Uma pista descoberta no começo poderá ganhar importância mais tarde. Isso cria continuidade entre as fases e recompensa atenção e memória.
+107 p 
+108 p 4.6 Falha e recuperação
+109 p 
+110 p Erros investigativos não devem provocar Game Over constante. Uma hipótese incoerente pode bloquear temporariamente a dedução, um puzzle incorreto permite nova tentativa e uma acusação sem evidências reduz a pontuação. Em momentos específicos de suspense, uma falha pode reiniciar a cena ou retornar ao último ponto seguro. 
+111 p A punição principal é investigativa: perda de pontos, necessidade de rever evidências e tempo adicional para encontrar uma conclusão coerente.
+112 p 
+113 p 4.7 Sistema de pontuação
+114 p 
+115 tbl Ação  | Pontuação | Coletar uma nova evidência  | +10 | Resolver enigma | +20 | Registrar uma dedução correta  | +20 | Cometer um erro penalizado  | -5 | Consultar instruções ou dicas  | Sem desconto
+116 p 5. Interface e Controles
+117 p 
+118 tbl Comando | Função | WASD / Setas | Movimentar o personagem durante exploração | E | Interagir / investigar | Q | Usar habilidade do Natural quando disponível | TAB | Abrir painel de pistas | ESC | Pausa / menu | Mouse | Selecionar botões e respostas quando necessário
+119 p 
+120 p 
+121 p 5.1 Interface durante a exploração
+122 p A tela deve manter o cenário como elemento principal. Informações permanentes devem ser mínimas. Quando o jogador se aproxima de um objeto investigável, um pequeno indicador pode mostrar que a interação está disponível. Ao encontrar uma evidência, uma mensagem curta confirma o registro.
+123 p 
+124 p  5.2 Painel de pistas 
+125 p O painel de pistas reúne as evidências encontradas e serve como ferramenta de memória. Cada registro pode apresentar nome, descrição curta e uma indicação de que aquela informação já foi utilizada em uma dedução. O painel não deve revelar automaticamente quais pistas são corretas. 
+126 p 
+127 p 5.3 Telas e estados       
+128 p Menu inicial
+129 p Prólogo
+130 p Exploração
+131 p Interrogatório 
+132 p Puzzle
+133 p Reconstrução/perfilação
+134 p Pausa
+135 p Epílogo/resultado 
+136 p 
+137 p 6. Direção de Arte
+138 p  A direção visual será 2D, priorizando clareza, atmosfera de investigação e viabilidade de produção em Pygame. Como os materiais fornecidos não definem um estilo gráfico oficial, esta seção estabelece apenas uma direção funcional para o projeto.    
+139 p    
+140 p Cenários 2D com pontos de interesse integrados ao ambiente.
+141 p Sprites ou retratos consistentes para os personagens. 
+142 p Interface sóbria, com contraste suficiente para leitura de diálogos e pistas.
+143 p Ambientes mais escuros e tensos na fase Caçadores e  | caçados | .
+144 p Objetos importantes não devem brilhar ou se destacar de forma óbvia; o jogador precisa observar.
+145 p Puzzles |  devem  | priorizar legibilidade |   | sobre decoração | .
+146 p 
+147 p 
+148 p 
+149 p 
+150 p 7. Descrição Técnica
+151 p A implementação seguirá os fundamentos apresentados no estudo dirigido: Python e Pygame,
+152 p organização em assets, scripts e main.py, uso de classes, controle de cenas/estados, textos, botões,
+153 p colisões e sistema de pontuação.
+154 p 
+155 p 
+156 tbl Componente | Definição | Linguagem | Python | Biblioteca | Pygame | Plataforma | Computador | main.py | Inicialização do Pygame, janela, loop principal, tempo e controle geral. | cenas.py | Controle de menu, fases, interrogatórios, puzzles e | transições. | personagens.py | Classes e comportamento dos personagens controláveis. | interfaces.py | Textos, botões, caixas de diálogo, HUD e painel de pistas. | investigacao.py | Pontuação, deduções, regras de interação e progressão investigativa. | dialogos.py | Falas, opções e condições de desbloqueio. | pistas.py | Dados das evidências e estado de coleta. | Colisões | Detecção de proximidade com objetos e limites do cenário.
+157 p 
+158 p 7.1 Estrutura de arquivos
+159 p os_naturais | /
+160 p |-- main.py
+161 p |-- assets/
+162 p | |-- personagens/
+163 p | |--  | cenarios | /
+164 p | |-- pistas/
+165 p | |-- interface/
+166 p | `-- sons/
+167 p `-- scripts/
+168 p |-- personagens.py
+169 p |-- cenas.py
+170 p |-- interfaces.py
+171 p |-- investigacao.py
+172 p |-- dialogos.py
+173 p `-- pistas.py
+174 p 7.2 Lógica de cenas
+175 p O jogo pode utilizar uma variável de estado para indicar qual cena deve ser atualizada e desenhada,
+176 p seguindo a abordagem apresentada no estudo dirigido. Exemplo de estados: menu, prólogo, fase 1, fase 2,
+177 p fase |  3 | ,  | fase 4 | ,  | fase 5 | , fase 6 e epílogo.
+178 p 
+179 p 
+180 p 8 . Telas do jogo 
+181 p 
+182 p 
+183 p 
+184 p 
+185 p 
+186 p 
+187 p 
+188 p 
+189 p 
+190 p 
+191 p 
+192 p 
+193 p 
+194 p 
+195 p 
+196 p 
+197 p 
+198 sectPr 

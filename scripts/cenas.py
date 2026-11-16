@@ -185,6 +185,9 @@ class Game:
             if self.player_screens.active:
                 self.player_screens.handle_event(event)
                 continue
+            if self.state == "campaign" and self.campaign_data.get("edition") == "visual8" and self.campaign.team.roster_open:
+                self.campaign.team.handle_roster_event(event)
+                continue
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE and self.show_clues:
                     self.show_clues = False
@@ -586,7 +589,9 @@ class Game:
 
         if self.show_clues:
             used = {key for key, was_used in self.investigation.evidence.items() if was_used}
-            draw_clue_panel(self.screen, self.fonts, self.investigation.discovered(), self.investigation.score, self.clue_page, used)
+            evidences = (self.campaign.discovered() if self.state == "campaign" and self.campaign_data.get("edition") == "visual8"
+                         else self.investigation.discovered())
+            draw_clue_panel(self.screen, self.fonts, evidences, self.investigation.score, self.clue_page, used)
             for button in self.clue_buttons():
                 button.draw(self.screen, self.fonts, pygame.mouse.get_pos())
         if self.paused:
@@ -606,15 +611,14 @@ class Game:
 
         title = self.fonts.title.render("Conflitos de Sangue", True, TEXT)
         self.screen.blit(title, title.get_rect(center=(width // 2, 145)))
-        subtitle = self.fonts.subtitle.render("Aventura narrativa 2D de misterio e investigacao", True, MUTED)
+        subtitle = self.fonts.subtitle.render("Oito fases. Um caso em aberto.", True, MUTED)
         self.screen.blit(subtitle, subtitle.get_rect(center=(width // 2, 200)))
 
         case_rect = pygame.Rect(230, 272, width - 460, 190)
         draw_text(
             self.screen,
             (
-                "Investigue o desaparecimento de Celine, conecte pistas, use as habilidades "
-                "dos Naturais e descubra o padrao por tras dos Masters."
+                "Celine desapareceu. Uma mensagem para Cassie leva a equipe ate Mercer House."
             ),
             self.fonts.body,
             TEXT,
@@ -639,6 +643,8 @@ class Game:
                 chapter = saved["progress"]["campaign_data"]["chapter"]
                 stage = "Prologo" if chapter == 0 else "Epilogo" if chapter == 7 else f"Fase {chapter} de 6"
                 label = f"Roteiro expandido / {stage} / {saved['investigation']['score']} pontos"
+                if saved["progress"]["campaign_data"].get("edition") == "visual8":
+                    label = f"Aventura visual / Fase {chapter} de 8 / {saved['investigation']['score']} pontos"
                 if self.saved_run_ended():
                     status = "Registrada no ranking" if saved["progress"]["result_saved"] and saved["progress"]["ranking_eligible"] else "Registrada no historico" if saved["progress"]["result_saved"] else "Registro pendente"
                     label = f"Partida encerrada / {saved['investigation']['score']} pontos / {status}"
@@ -937,7 +943,7 @@ class Game:
         self.message = message
         self.message_timer = seconds
 
-    def start_game(self, expanded: bool = True, player_name: str = "") -> None:
+    def start_game(self, expanded: bool = True, player_name: str = "", visual: bool = False) -> None:
         self.instructions.active = False
         self.player_screens.active = ""
         self.player_name = player_name
@@ -946,6 +952,10 @@ class Game:
         self.result_saved = False
         self.player_screens.result_notice = ""
         self.campaign_data = new_campaign()
+        if visual and expanded:
+            from scripts.aventura_visual import new_visual_campaign
+            self.campaign_data = new_visual_campaign()
+        self.select_campaign()
         self.prologue_outro_index = -1
         self.epilogue_index = 0
         self.puzzle_input = ""
@@ -1043,6 +1053,7 @@ class Game:
         for key in PROGRESS_FIELDS:
             value = saved["progress"][key]
             setattr(self, key, deepcopy(value))
+        self.select_campaign()
         inv = dict(saved["investigation"])
         inv["evidence"] = dict(inv["evidence"])
         inv["used_abilities"] = set(inv["used_abilities"])
@@ -1057,6 +1068,13 @@ class Game:
         self.save_elapsed = 0.0
         if self.state == "campaign" and not self.player_name and self.player_screens.store:
             self.player_screens.ask_name(resume=True)
+
+    def select_campaign(self):
+        if self.campaign_data.get("edition") == "visual8":
+            from scripts.aventura_visual import VisualCampaign
+            self.campaign = VisualCampaign(self)
+        else:
+            self.campaign = ExpandedCampaign(self)
 
     def prologue_choice_buttons(self) -> list[Button]:
         return [

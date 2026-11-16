@@ -59,11 +59,26 @@ class Instructions:
         return self.g.state in {"menu", "campaign"} and not (self.g.paused or self.g.show_clues or self.g.confirm_new or self.g.player_screens.active)
 
     def button(self):
-        return Button(pygame.Rect(925, 14, 175, 42), "Guia rapido", "instructions")
+        return Button(pygame.Rect(925, 14, 175, 42), "O caso" if self.visual_edition() else "Guia rapido", "instructions")
+
+    def visual_edition(self):
+        return self.g.state == "menu" or self.g.campaign_data.get("edition") == "visual8"
+
+    def pages(self):
+        if self.visual_edition():
+            return [("O desaparecimento de Celine", [
+                ("Celine", "Desapareceu. A equipe procura registros que expliquem seus ultimos passos."),
+                ("Cassie e os Naturais", "Cassie reconstroi os fatos; Dean analisa intencoes; Michael orienta conversas; Lia confronta falas; Sloane resolve padroes. Consulte Equipe para rever as funcoes."),
+                ("Os Masters", "Um grupo perigoso ligado a investigacao. Uma mensagem pessoal nao basta para provar quem a escreveu."),
+            ])]
+        return PAGES
 
     def open(self, contextual=True):
         d = self.g.campaign_data
         self.page = 0
+        if self.visual_edition():
+            self.active = True
+            return
         if contextual and self.g.state == "campaign":
             view = d["note_return"] if d["view"] == "note" else d["view"]
             if view == "puzzle" and d["puzzle"]:
@@ -75,7 +90,7 @@ class Instructions:
     def buttons(self):
         return [Button(pygame.Rect(60, 635, 220, 48), "Fechar ajuda", "close"),
                 Button(pygame.Rect(900, 635, 65, 48), "<", "previous", self.page > 0),
-                Button(pygame.Rect(985, 635, 65, 48), ">", "next", self.page < len(PAGES)-1)]
+                Button(pygame.Rect(985, 635, 65, 48), ">", "next", self.page < len(self.pages())-1)]
 
     def handle_event(self, event):
         action = None
@@ -85,7 +100,7 @@ class Instructions:
             elif event.key == pygame.K_RIGHT:
                 action = "next"
             elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
-                action = "next" if self.page < len(PAGES)-1 else "close"
+                action = "next" if self.page < len(self.pages())-1 else "close"
             elif event.key == pygame.K_LEFT:
                 action = "previous"
         for button in self.buttons():
@@ -95,7 +110,7 @@ class Instructions:
         if action == "close":
             self.active = False
         elif action == "next":
-            self.page = min(len(PAGES)-1, self.page + 1)
+            self.page = min(len(self.pages())-1, self.page + 1)
         elif action == "previous":
             self.page = max(0, self.page - 1)
 
@@ -103,8 +118,9 @@ class Instructions:
         g = self.g
         g.screen.blit(g.backgrounds["arquivo"], (0, 0))
         draw_band(g.screen, pygame.Rect(0, 0, 1120, 720), alpha=243)
-        title, sections = PAGES[self.page]
-        draw_text(g.screen, f"COMO JOGAR / {self.page + 1} DE {len(PAGES)}", g.fonts.small, ACCENT_2, pygame.Rect(60, 42, 1000, 28))
+        title, sections = self.pages()[self.page]
+        label = "ARQUIVO DO CASO" if self.visual_edition() else f"COMO JOGAR / {self.page + 1} DE {len(PAGES)}"
+        draw_text(g.screen, label, g.fonts.small, ACCENT_2, pygame.Rect(60, 42, 1000, 28))
         draw_text(g.screen, title, g.fonts.h1, TEXT, pygame.Rect(60, 88, 1000, 50))
         for i, (heading, body) in enumerate(sections):
             y = 165 + i * 145

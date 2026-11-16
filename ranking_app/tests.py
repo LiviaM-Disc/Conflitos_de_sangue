@@ -54,8 +54,11 @@ class RankingTests(TestCase):
     def test_best_score_ties_and_full_history(self):
         self.store.record(uuid4(), "Ana", 100, 3)
         self.store.record(uuid4(), "Ana", 80, 0)
-        self.store.record(uuid4(), "Bia", 100, 1)
-        self.store.record(uuid4(), "Caio", 100, 1)
+        bia = self.store.record(uuid4(), "Bia", 100, 1)
+        caio = self.store.record(uuid4(), "Caio", 100, 1)
+        # Windows clocks can timestamp consecutive inserts identically.
+        from datetime import timedelta
+        GameResult.objects.filter(pk=caio.pk).update(finished_at=bia.finished_at + timedelta(seconds=1))
         self.store.record(uuid4(), "Antigo", 999, 0, False)
         rows = self.store.standings("ana")
         self.assertEqual([r["name"] for r in rows], ["Bia", "Caio", "Ana"])
@@ -79,6 +82,45 @@ class RankingTests(TestCase):
         for score, mistakes in ((-1, 0), (True, 0), (10, -1), (1000001, 0)):
             with self.assertRaises(ValueError):
                 self.store.record(uuid4(), "Ana", score, mistakes)
+
+    def test_eight_stage_results_are_separate_from_legacy_ranking(self):
+        self.store.record(uuid4(), "Ana", 900, 0)
+        run = uuid4()
+        self.store.record(run, "Ana", 600, 2, campaign="visual8", phase=8)
+        self.store.record(run, "Ana", 600, 2, campaign="visual8", phase=8)
+        self.assertEqual(self.store.standings("Ana")[0]["score"], 900)
+        visual = self.store.standings("Ana", campaign="visual8")
+        self.assertEqual(visual[0]["score"], 600)
+        self.assertEqual(visual[0]["phase"], 8)
+        self.assertEqual(GameResult.objects.count(), 2)
+        with self.assertRaises(ValueError):
+            self.store.record(uuid4(), "Ana", 600, 0, campaign="visual8", phase=9)
+
+    def test_visual_close_writes_stage_eight_in_real_database(self):
+        import os
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+        os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
+        os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
+        import pygame
+        from scripts.cenas import Game
+        pygame.init()
+        try:
+            with TemporaryDirectory() as folder:
+                game = Game(pygame.display.set_mode((1120, 720)), Path(__file__).resolve().parents[1],
+                            Path(folder) / "save.json", ranking_store=self.store)
+                game.start_game(player_name="Visual", visual=True)
+                game.campaign_data.update(chapter=8, view="explore")
+                game.investigation.score = 650
+                game.handle_events([pygame.event.Event(pygame.QUIT)])
+                self.assertFalse(game.running)
+                result = GameResult.objects.get(pk=game.run_id)
+                self.assertEqual((result.campaign, result.phase, result.score), ("visual8", 8, 650))
+                self.assertFalse(result.completed)
+                self.assertEqual(self.store.standings(campaign="visual8")[0]["score"], 650)
+                self.assertEqual(self.store.standings(), [])
+        finally:
+            pygame.quit()
 
     def test_early_result_enters_ranking_without_claiming_completion(self):
         run = uuid4()

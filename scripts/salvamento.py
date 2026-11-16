@@ -34,12 +34,12 @@ def snapshot(game) -> dict:
     investigation["used_abilities"] = sorted(game.investigation.used_abilities)
     # Copy the selection lists: later clicks must not change the last saved snapshot.
     progress = {key: deepcopy(getattr(game, key)) for key in PROGRESS_FIELDS}
-    return {"version": 5, "progress": progress, "investigation": investigation,
+    return {"version": 7 if game.campaign_data.get("edition") == "visual8" else 5, "progress": progress, "investigation": investigation,
             "position": list(game.player.rect.topleft), "facing_left": game.player.facing_left}
 
 
 def validate(data: object) -> dict:
-    if not isinstance(data, dict) or type(data.get("version")) is not int or data["version"] not in (1, 2, 3, 4, 5):
+    if not isinstance(data, dict) or type(data.get("version")) is not int or data["version"] not in (1, 2, 3, 4, 5, 6, 7):
         raise ValueError("Versao de salvamento nao suportada")
     if data["version"] == 1 and isinstance(data.get("progress"), dict):
         data = {**data, "version": 2, "progress": {**data["progress"],
@@ -59,6 +59,14 @@ def validate(data: object) -> dict:
         identity = str(uuid5(NAMESPACE_URL, json.dumps(data, sort_keys=True)))
         data = {**data, "version": 5, "progress": {**data["progress"], "player_name": "",
                 "run_id": identity, "ranking_eligible": False, "result_saved": False}}
+    if data["version"] == 6 and isinstance(data.get("progress"), dict):
+        campaign = data["progress"].get("campaign_data")
+        if isinstance(campaign, dict) and campaign.get("edition") == "visual8":
+            # Completed phases keep their points; only future analyses are added.
+            data = deepcopy(data)
+            campaign = data["progress"]["campaign_data"]
+            campaign.update(team_ready=False, team_round=0, team_selection=[], team_done=deepcopy(campaign.get("flags", [])))
+            data["version"] = 7
     p, inv = data.get("progress"), data.get("investigation")
     if not isinstance(p, dict) or not isinstance(inv, dict) or set(p) != set(PROGRESS_FIELDS):
         raise ValueError("Progresso incompleto")

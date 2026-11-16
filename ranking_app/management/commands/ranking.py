@@ -5,10 +5,13 @@ from scripts.ranking import DjangoRanking
 class Command(BaseCommand):
     help = "Exibe o ranking local armazenado pelo Django."
 
+    def add_arguments(self, parser):
+        parser.add_argument("--campaign", choices=("visual8", "classic"), default="visual8")
+
     def handle(self, *args, **options):
         store = DjangoRanking()
         store.initialized = True
-        rows = store.standings()
+        rows = store.standings(campaign=options["campaign"])
         if not rows:
             self.stdout.write("Nenhuma partida registrada no ranking.")
         for row in rows:

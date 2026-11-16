@@ -71,15 +71,19 @@ class InstructionsTests(unittest.TestCase):
             self.key(pygame.K_ESCAPE)
             self.assertEqual(self.game.state, state)
 
-    def test_new_player_receives_guide_without_replacing_opening(self):
+    def test_new_player_enters_visual_opening_without_mandatory_guide(self):
         self.game.reset_to_menu()
         self.game.player_screens.ask_name()
         self.game.player_screens.name = "Novo jogador"
         self.game.player_screens.accept_name()
-        self.assertTrue(self.game.instructions.active)
-        self.assertEqual(self.game.campaign_data["dialogue"], "opening")
+        self.assertFalse(self.game.instructions.active)
+        self.assertEqual(self.game.campaign_data["edition"], "visual8")
+        self.assertEqual(self.game.campaign_data["view"], "intro")
         self.assertEqual(self.game.campaign_data["line"], 0)
-        self.key(pygame.K_ESCAPE)
+        self.key(pygame.K_F1)
+        self.assertTrue(self.game.instructions.active)
+        self.assertEqual(len(self.game.instructions.pages()), 1)
+        self.key(pygame.K_F1)
         self.assertEqual(self.game.campaign_data["line"], 0)
 
     def test_case_summary_preserves_evidence_items_and_score(self):

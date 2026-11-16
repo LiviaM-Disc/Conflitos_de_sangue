@@ -29,6 +29,10 @@ def new_campaign() -> dict:
 
 
 def validate_campaign(data: object, nested=False) -> None:
+    if isinstance(data, dict) and data.get("edition") == "visual8":
+        from scripts.aventura_visual import validate_visual
+        validate_visual(data)
+        return
     if not isinstance(data, dict) or set(data) != set(new_campaign()):
         raise ValueError("Campanha incompleta")
     for key, low, high in (("chapter", 0, 7), ("line", 0, max(map(len, DIALOGUES.values()))), ("exposure", 0, 4),

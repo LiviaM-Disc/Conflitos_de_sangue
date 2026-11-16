@@ -16,6 +16,7 @@ class PlayerScreens:
         self.rows = []
         self.page = 0
         self.result_notice = ""
+        self.ranking_campaign = "visual8"
 
     def ask_name(self, resume=False):
         self.active, self.resume, self.notice = "name", resume, ""
@@ -50,8 +51,7 @@ class PlayerScreens:
         if self.resume:
             self.g.player_name = name
         else:
-            self.g.start_game(player_name=name)
-            self.g.instructions.open(contextual=False)
+            self.g.start_game(player_name=name, visual=True)
         if self.g.campaign_data["view"] in {"report", "ended"}:
             self.finish()
         if self.g.save_store:
@@ -68,10 +68,12 @@ class PlayerScreens:
             self.result_notice = "Resultado registrado no Django."
             return True
         try:
+            visual = g.campaign_data.get("edition") == "visual8"
+            options = {"campaign": "visual8"} if visual else {}
             self.store.record(g.run_id, g.player_name, max(0, g.investigation.score),
                               g.investigation.mistakes, g.ranking_eligible,
                               completed=g.campaign_data["view"] == "report",
-                              phase=min(6, g.campaign_data["chapter"]))
+                              phase=min(8 if visual else 6, g.campaign_data["chapter"]), **options)
         except Exception:
             self.result_notice = "Resultado pendente. Abra Ranking e tente registrar novamente."
             return False
@@ -81,6 +83,8 @@ class PlayerScreens:
 
     def show_ranking(self):
         self.active, self.page, self.notice = "ranking", 0, ""
+        if self.g.state == "campaign":
+            self.ranking_campaign = "visual8" if self.g.campaign_data.get("edition") == "visual8" else "classic"
         if self.g.state == "campaign" and self.g.campaign_data["view"] in {"report", "ended"}:
             self.finish()
             if self.active == "name":
@@ -118,7 +122,7 @@ class PlayerScreens:
             self.notice = "Ranking indisponivel nesta sessao."
             return
         try:
-            self.rows = self.store.standings(self.g.player_name)
+            self.rows = self.store.standings(self.g.player_name, campaign=self.ranking_campaign)
             self.notice = ""
         except Exception:
             self.notice = "Nao foi possivel ler o banco. Tente atualizar novamente."
@@ -160,7 +164,9 @@ class PlayerScreens:
         if self.active == "name":
             return [Button(pygame.Rect(260, 510, 220, 50), "Cancelar", "back"),
                     Button(pygame.Rect(640, 510, 220, 50), "Confirmar nome", "accept")]
-        return [Button(pygame.Rect(60, 638, 175, 48), "Voltar", "back"),
+        return [Button(pygame.Rect(60, 143, 180, 28), "Oito fases", "visual8", selected=self.ranking_campaign == "visual8"),
+                Button(pygame.Rect(255, 143, 180, 28), "Campanha anterior", "classic", selected=self.ranking_campaign == "classic"),
+                Button(pygame.Rect(60, 638, 175, 48), "Voltar", "back"),
                 Button(pygame.Rect(255, 638, 240, 48), "Atualizar e registrar", "refresh"),
                 Button(pygame.Rect(900, 638, 65, 48), "<", "previous", self.page > 0),
                 Button(pygame.Rect(985, 638, 65, 48), ">", "next", (self.page + 1) * 7 < len(self.rows))]
@@ -191,6 +197,9 @@ class PlayerScreens:
             self.accept_name()
         elif action == "end":
             self.confirm_end()
+        elif action in {"visual8", "classic"}:
+            self.ranking_campaign, self.page = action, 0
+            self.refresh()
         elif action == "refresh":
             self.finish()
             self.refresh()
@@ -207,7 +216,8 @@ class PlayerScreens:
         draw_text(g.screen, title, g.fonts.h1, TEXT, pygame.Rect(60, 55, 1000, 50))
         if self.active == "end_confirm":
             phase = self.g.campaign_data["chapter"]
-            stage = "Prologo" if phase == 0 else "Epilogo" if phase == 7 else f"Fase {phase} de 6"
+            visual = self.g.campaign_data.get("edition") == "visual8"
+            stage = f"Fase {phase} de 8" if visual else "Prologo" if phase == 0 else "Epilogo" if phase == 7 else f"Fase {phase} de 6"
             draw_text(g.screen, f"{self.g.player_name} | {stage} | {self.g.investigation.score} pontos", g.fonts.h2, GOOD, pygame.Rect(170, 200, 780, 70))
             message = "Sua pontuacao atual sera registrada no ranking. Esta tentativa sera encerrada e nao podera ser continuada. As fases restantes nao serao marcadas como concluidas."
             if not self.g.ranking_eligible:
